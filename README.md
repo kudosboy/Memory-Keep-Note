@@ -36,6 +36,10 @@ This repository includes `render.yaml`, which creates a Node web service. MongoD
 
 Render generates the session secret automatically. It redeploys whenever new commits are pushed to `main`.
 
+## Administrator access
+
+Set `ADMIN_EMAIL` in your private `.env` file to the exact email address of your own account. After signing in with that account, open `/admin.html` to view account totals and note counts, suspend or restore accounts, or permanently remove an account and its notes. The dashboard never exposes passwords, credentials, source files, or note contents.
+
 ## Privacy note
 
 Clearing browser data removes only the local cache. Notes saved while signed in remain in the account and return after signing in again. This is a personal notes app; do not use it for passwords, recovery codes, or other highly sensitive secrets.

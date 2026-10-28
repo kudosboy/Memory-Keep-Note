@@ -1,1 +1,26 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Create account | Memory Keep Note</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#07070f;color:#f2f3ff;font:16px system-ui,sans-serif}.card{width:min(90vw,400px);padding:28px;border:1px solid #ffffff24;border-radius:20px;background:#17172ad9}input,button{box-sizing:border-box;width:100%;margin-top:10px;padding:12px;border-radius:10px;font:inherit}input{border:1px solid #ffffff33;background:#ffffff0d;color:white}button{border:0;background:linear-gradient(135deg,#8b7bff,#ff5fa8);color:white;font-weight:700;cursor:pointer}p{color:#c9c9dc;line-height:1.5}a{color:#bdb4ff}#message{min-height:22px}</style></head><body><main class="card"><h1>Create account</h1><p>Your notes will be saved securely to your account.</p><form id="form"><input id="email" type="email" autocomplete="email" placeholder="Email address" required><input id="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" placeholder="Password (10+ characters)" required><button>Create account</button></form><p id="message" role="alert"></p><p><a href="sign-in.html">Already have an account? Sign in</a></p></main><script>document.querySelector("#form").addEventListener("submit",async e=>{e.preventDefault();const m=document.querySelector("#message");m.textContent="Creating account…";try{const r=await fetch("/api/auth/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:email.value,password:password.value})}),d=await r.json();if(!r.ok)throw Error(d.error);location.href="/"}catch(e){m.textContent=e.message}})</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Create account | Memory Keep Note</title><link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root{color-scheme:dark;--ink:#f5f3ff;--muted:#bdb8ce;--line:#ffffff22;--purple:#8b7bff;--pink:#ff5fa8}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:14px;background:radial-gradient(circle at 10% 10%,#33226f,transparent 42%),radial-gradient(circle at 92% 88%,#563048,transparent 45%),#090812;color:var(--ink);font:15px system-ui,sans-serif}.card{width:min(100%,340px);padding:18px;border:1px solid var(--line);border-radius:16px;background:#141321c9;box-shadow:0 14px 42px #0008;backdrop-filter:blur(18px)}.mark{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--purple),var(--pink));font-size:17px}h1{margin:11px 0 4px;font-size:21px}p{color:var(--muted);line-height:1.4;font-size:13px}form{display:grid;gap:8px;margin-top:14px}label{display:grid;gap:4px;font-size:12px;color:var(--muted)}input,button{width:100%;padding:9px;border-radius:9px;font:inherit}input{border:1px solid var(--line);background:#ffffff0b;color:var(--ink);outline:none}input:focus{border-color:var(--purple)}button{border:0;background:linear-gradient(135deg,var(--purple),var(--pink));color:white;font-weight:700;cursor:pointer}button:disabled{opacity:.6;cursor:wait}#message{min-height:16px;color:#ffb6c9;font-size:12px}.foot{margin-top:13px;text-align:center;font-size:12px}a{color:#c6beff}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="mark"><img src="/favicon.svg" alt="" width="34" height="34"></div><h1>Create your account</h1>
+    <p>Your notes stay connected to you, even if you clear your browser data.</p>
+    <form id="form">
+      <label>Full name<input id="fullName" type="text" autocomplete="name" maxlength="80" required></label>
+      <label>Email address<input id="email" type="email" autocomplete="email" maxlength="254" required></label>
+      <label>Password<input id="password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required></label>
+      <label>Confirm password<input id="confirmPassword" type="password" autocomplete="new-password" minlength="10" maxlength="128" required></label>
+      <p id="message" role="alert"></p><button id="submit" type="submit">Create account</button>
+    </form>
+    <p class="foot">Already have an account? <a href="sign-in.html">Sign in</a><br><br><a href="/">← Back to website</a></p>
+  </main>
+  <script>
+    document.querySelector("#form").addEventListener("submit",async(event)=>{event.preventDefault();const message=document.querySelector("#message"),button=document.querySelector("#submit");if(password.value!==confirmPassword.value){message.textContent="Passwords do not match.";return}button.disabled=true;message.textContent="Creating account…";try{const response=await fetch("/api/auth/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({fullName:fullName.value,email:email.value,password:password.value})}),data=await response.json();if(!response.ok)throw Error(data.error);location.href="/memorykeepnote.html"}catch(error){message.textContent=error.message;button.disabled=false}});
+  </script>
+</body></html>
