@@ -1,9 +1,10 @@
 "use strict";
 require("dotenv").config();
-const path=require("path"),crypto=require("crypto"),express=require("express"),session=require("express-session"),MongoStore=require("connect-mongo"),bcrypt=require("bcryptjs"),helmet=require("helmet"),{rateLimit}=require("express-rate-limit"),nodemailer=require("nodemailer"),{MongoClient,ServerApiVersion}=require("mongodb");
+const path=require("path"),crypto=require("crypto"),dns=require("dns"),express=require("express"),session=require("express-session"),MongoStore=require("connect-mongo"),bcrypt=require("bcryptjs"),helmet=require("helmet"),{rateLimit}=require("express-rate-limit"),nodemailer=require("nodemailer"),{MongoClient,ServerApiVersion}=require("mongodb");
 const {MONGODB_URI,NODE_ENV="development",SESSION_SECRET,SMTP_URL,PORT=3000}=process.env;
 if(!MONGODB_URI)throw Error("MONGODB_URI is required. Add your MongoDB Atlas connection string.");
 if(!SESSION_SECRET)throw Error("SESSION_SECRET is required.");
+if(process.env.DNS_SERVERS)dns.setServers(process.env.DNS_SERVERS.split(",").map((server)=>server.trim()).filter(Boolean));
 const mongo=new MongoClient(MONGODB_URI,{serverApi:{version:ServerApiVersion.v1,strict:true,deprecationErrors:true}}),app=express();
 let users,notes;
 app.set("trust proxy",1);app.use(helmet({contentSecurityPolicy:false,crossOriginEmbedderPolicy:false}));app.use(express.json({limit:"250kb"}));app.use(session({store:MongoStore.create({mongoUrl:MONGODB_URI,collectionName:"sessions"}),secret:SESSION_SECRET,resave:false,saveUninitialized:false,cookie:{httpOnly:true,sameSite:"lax",secure:NODE_ENV==="production",maxAge:2592000000}}));
