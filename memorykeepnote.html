@@ -348,6 +348,23 @@
   }
   .scrim.show { opacity: 1; pointer-events: auto; }
 
+  /* ---------- Account ---------- */
+  .account-btn { width: 100%; padding: 9px 11px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .account-btn:hover { color: var(--text); background: rgba(255,255,255,.10); }
+  .auth-gate { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 20px; background: rgba(7,7,15,.55); backdrop-filter: blur(14px); }
+  .auth-card { width: min(100%, 410px); padding: 28px; }
+  .auth-card h2 { font-size: 24px; margin: 12px 0 7px; }
+  .auth-card p { color: var(--muted); font-size: 14px; line-height: 1.5; }
+  .auth-form { display: grid; gap: 12px; margin-top: 22px; }
+  .auth-form label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; }
+  .auth-form input { width: 100%; padding: 11px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.13); background: rgba(255,255,255,.06); color: var(--text); font: inherit; outline: none; }
+  .auth-form input:focus { border-color: rgba(139,123,255,.7); }
+  .auth-submit { border: 0; padding: 12px; border-radius: 12px; color: white; font: inherit; font-weight: 700; cursor: pointer; background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+  .auth-switch { margin-top: 15px; width: 100%; border: 0; background: transparent; color: #bdb4ff; font: inherit; cursor: pointer; }
+  .auth-error { min-height: 18px; color: #ff9aad !important; font-size: 12px !important; }
+  body.auth-pending .app { pointer-events: none; filter: blur(5px); }
+  body.auth-ready .auth-gate { display: none; }
+
   /* ---------- Responsive ---------- */
   @media (max-width: 860px) {
     .app { padding: 10px; gap: 10px; }
@@ -375,7 +392,7 @@
   }
 </style>
 </head>
-<body>
+<body class="auth-pending">
 
 <div class="bg">
   <div class="blob b1"></div>
@@ -409,6 +426,7 @@
     </div>
 
     <div class="notes-list" id="notesList"></div>
+    <button class="account-btn" id="accountBtn" type="button" title="Account options">Account</button>
   </aside>
 
   <div class="scrim" id="scrim"></div>
@@ -449,6 +467,21 @@
     </div>
   </main>
 </div>
+
+<section class="auth-gate" id="authGate" aria-labelledby="authTitle">
+  <div class="auth-card glass">
+    <div class="logo">&#10022;</div>
+    <h2 id="authTitle">Keep your notes safe</h2>
+    <p id="authDescription">Sign in to access notes saved securely to your account.</p>
+    <form class="auth-form" id="authForm">
+      <label>Email<input id="authEmail" type="email" autocomplete="email" required maxlength="254"></label>
+      <label>Password<input id="authPassword" type="password" autocomplete="current-password" required minlength="10" maxlength="128"></label>
+      <p class="auth-error" id="authError" role="alert"></p>
+      <button class="auth-submit" id="authSubmit" type="submit">Sign in</button>
+    </form>
+    <button class="auth-switch" id="authSwitch" type="button">Need an account? Create one</button>
+  </div>
+</section>
 
 <script>
 (function () {
@@ -809,6 +842,111 @@
   }
 
   init();
+})();
+</script>
+<script>
+(() => {
+  "use strict";
+  const STORAGE_KEY = "glass-notes-v1";
+  const ACTIVE_ACCOUNT_KEY = "glass-notes-account-v1";
+  const $ = (selector) => document.querySelector(selector);
+  let user = null;
+  let mode = "login";
+  let hydrating = false;
+  let syncTimer = null;
+  const nativeSetItem = Storage.prototype.setItem;
+
+  function setGateReady() {
+    document.body.classList.remove("auth-pending");
+    document.body.classList.add("auth-ready");
+    const accountButton = $("#accountBtn");
+    accountButton.textContent = user.email;
+    accountButton.title = "Sign out of " + user.email;
+  }
+
+  async function request(url, options = {}) {
+    const response = await fetch(url, { ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } });
+    const body = response.status === 204 ? null : await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.error || "Request failed. Please try again.");
+    return body;
+  }
+
+  function queueSync(raw) {
+    if (!user || hydrating) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(async () => {
+      try {
+        const notes = JSON.parse(raw);
+        await request("/api/notes/sync", { method: "POST", body: JSON.stringify({ notes }) });
+      } catch (error) {
+        const state = $("#saveState");
+        if (state) state.textContent = "Could not sync — retrying";
+      }
+    }, 550);
+  }
+
+  Storage.prototype.setItem = function(key, value) {
+    nativeSetItem.call(this, key, value);
+    if (this === localStorage && key === STORAGE_KEY) queueSync(value);
+  };
+
+  async function hydrate(account) {
+    user = account;
+    const activeAccount = localStorage.getItem(ACTIVE_ACCOUNT_KEY);
+    if (activeAccount !== user.id) {
+      hydrating = true;
+      try {
+        const remote = await request("/api/notes");
+        // Import device-only notes only on the very first account setup. A later
+        // account must never inherit cached notes from someone else's session.
+        const local = activeAccount ? [] : JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        const notes = remote.notes.length ? remote.notes : local;
+        nativeSetItem.call(localStorage, STORAGE_KEY, JSON.stringify(notes));
+        nativeSetItem.call(localStorage, ACTIVE_ACCOUNT_KEY, user.id);
+        if (!remote.notes.length && notes.length) await request("/api/notes/sync", { method: "POST", body: JSON.stringify({ notes }) });
+      } finally { hydrating = false; }
+      location.reload();
+      return;
+    }
+    setGateReady();
+  }
+
+  function showForm() {
+    const creating = mode === "register";
+    $("#authTitle").textContent = creating ? "Create your secure account" : "Keep your notes safe";
+    $("#authDescription").textContent = creating ? "Your notes will be available after browser data is cleared or on another device." : "Sign in to access notes saved securely to your account.";
+    $("#authSubmit").textContent = creating ? "Create account" : "Sign in";
+    $("#authPassword").autocomplete = creating ? "new-password" : "current-password";
+    $("#authSwitch").textContent = creating ? "Already have an account? Sign in" : "Need an account? Create one";
+    $("#authError").textContent = "";
+  }
+
+  $("#authSwitch").addEventListener("click", () => { mode = mode === "login" ? "register" : "login"; showForm(); });
+  $("#authForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = $("#authSubmit");
+    const error = $("#authError");
+    button.disabled = true;
+    error.textContent = "";
+    try {
+      const response = await request("/api/auth/" + mode, { method: "POST", body: JSON.stringify({ email: $("#authEmail").value, password: $("#authPassword").value }) });
+      await hydrate(response.user);
+    } catch (requestError) { error.textContent = requestError.message; }
+    finally { button.disabled = false; }
+  });
+  $("#accountBtn").addEventListener("click", async () => {
+    if (!user || !confirm("Sign out of " + user.email + "? Your saved notes will remain in your account.")) return;
+    try {
+      await request("/api/auth/logout", { method: "POST", body: "{}" });
+      location.reload();
+    } catch (error) { alert(error.message); }
+  });
+
+  request("/api/auth/me").then(({ user: account }) => account ? hydrate(account) : document.body.classList.remove("auth-pending")).catch(() => {
+    $("#authError").textContent = "The secure notes service is unavailable. Please try again shortly.";
+    document.body.classList.remove("auth-pending");
+  });
+  showForm();
 })();
 </script>
 </body>

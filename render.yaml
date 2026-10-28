@@ -1,23 +1,19 @@
 services:
   - type: web
-    name: memory-keep-note
-    runtime: static
-    buildCommand: "true"
-    staticPublishPath: .
-    routes:
-      - type: rewrite
-        source: /
-        destination: /memorykeepnote.html
-    headers:
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: Referrer-Policy
-        value: strict-origin-when-cross-origin
-      - path: /*
-        name: Permissions-Policy
-        value: "camera=(), microphone=(), geolocation=()"
-      - path: /*
-        name: Content-Security-Policy
-        value: "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'"
+    name: memory-keep-note-secure
+    runtime: node
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/auth/me
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: memory-keep-note-db
+          property: connectionString
+databases:
+  - name: memory-keep-note-db
+    databaseName: memory_keep_note
