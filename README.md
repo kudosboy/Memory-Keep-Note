@@ -13,11 +13,11 @@ A private, account-based note-taking app with a responsive glass-style interface
 
 ## Run locally
 
-Install dependencies, configure a PostgreSQL connection, then start the app:
+Install dependencies, configure MongoDB, then start the app:
 
 ```bash
 npm install
-set DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE
+set MONGODB_URI=mongodb+srv://USER:PASSWORD@YOUR-CLUSTER/memory_keep_note
 set SESSION_SECRET=replace-with-a-long-random-value
 npm start
 ```
@@ -26,14 +26,15 @@ Open `http://localhost:3000` in a modern browser.
 
 ## Deploy with Render
 
-This repository includes `render.yaml`, which creates a Node web service and a connected Render PostgreSQL database.
+This repository includes `render.yaml`, which creates a Node web service. MongoDB is hosted in your MongoDB Atlas account.
 
 1. Go to [Render](https://dashboard.render.com/) and sign in with GitHub.
 2. Select **New** then **Blueprint**.
 3. Connect the `kudosboy/Memory-Keep-Note` repository and choose `main`.
-4. Review the web-service and PostgreSQL resources, then deploy the Blueprint.
+4. Paste your MongoDB Atlas connection string when Render asks for `MONGODB_URI`.
+5. Paste an SMTP connection URL when asked for `SMTP_URL` so password-reset emails can be delivered. Set `MAIL_FROM` in Render after deployment if you want a branded sender.
 
-Render generates the session secret and connects the database automatically. It redeploys whenever new commits are pushed to `main`.
+Render generates the session secret automatically. It redeploys whenever new commits are pushed to `main`.
 
 ## Privacy note
 
