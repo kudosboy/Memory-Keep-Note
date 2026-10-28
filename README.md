@@ -17,10 +17,10 @@ Install dependencies, configure MongoDB, then start the app:
 
 ```bash
 npm install
-set MONGODB_URI=mongodb+srv://USER:PASSWORD@YOUR-CLUSTER/memory_keep_note
-set SESSION_SECRET=replace-with-a-long-random-value
 npm start
 ```
+
+First copy `.env.example` to `.env` and fill in its values. `.env` is ignored by Git so credentials are not pushed to GitHub.
 
 Open `http://localhost:3000` in a modern browser.
 

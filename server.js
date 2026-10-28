@@ -1,4 +1,5 @@
 "use strict";
+require("dotenv").config();
 const path=require("path"),crypto=require("crypto"),express=require("express"),session=require("express-session"),MongoStore=require("connect-mongo"),bcrypt=require("bcryptjs"),helmet=require("helmet"),{rateLimit}=require("express-rate-limit"),nodemailer=require("nodemailer"),{MongoClient,ServerApiVersion}=require("mongodb");
 const {MONGODB_URI,NODE_ENV="development",SESSION_SECRET,SMTP_URL,PORT=3000}=process.env;
 if(!MONGODB_URI)throw Error("MONGODB_URI is required. Add your MongoDB Atlas connection string.");
