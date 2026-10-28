@@ -5,7 +5,7 @@ A private, account-based note-taking app with a responsive glass-style interface
 ## Features
 
 - Create, edit, search, delete, and download notes
-- Secure account registration and sign-in
+- Secure account registration and sign-in, with dedicated sign-in and sign-up pages
 - Automatic server-side saving to PostgreSQL
 - One-time import of notes already stored in the browser
 - Keyboard shortcuts: `Ctrl/Cmd + N` for a new note and `Ctrl/Cmd + S` to save
