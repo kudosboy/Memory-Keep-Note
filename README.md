@@ -36,6 +36,14 @@ This repository includes `render.yaml`, which creates a Node web service. MongoD
 
 Render generates the session secret automatically. It redeploys whenever new commits are pushed to `main`.
 
+### MongoDB Atlas on Render
+
+Set `MONGODB_URI` in Render's Environment settings using the Atlas **Connect → Drivers → Node.js** connection string. Do not add quotes around it. If the database password contains characters such as `@`, `:`, `/`, `?`, `#`, `[`, or `]`, percent-encode the password before placing it in the URI.
+
+In Atlas, confirm the cluster is **Active** and allow Render to reach it in **Network Access**. For a service without fixed outbound IPs, this commonly requires an access-list rule of `0.0.0.0/0`; database credentials and TLS still protect the connection. Do not add insecure TLS options or disable certificate verification.
+
+The application pins Node.js 22.22.0 for Render and prints redacted startup diagnostics: Node/OpenSSL version, URI scheme, host, database name, credential presence, SRV DNS result, and retry outcome. It never logs the URI password.
+
 ## Administrator access
 
 Set `ADMIN_EMAIL` in your private `.env` file to the exact email address of your own account. After signing in with that account, open `/admin.html` to view account totals and note counts, suspend or restore accounts, or permanently remove an account and its notes. The dashboard never exposes passwords, credentials, source files, or note contents.
