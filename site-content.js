@@ -2,7 +2,7 @@
 
 (() => {
   const page = location.pathname === "/" ? "index.html" : location.pathname.split("/").pop();
-  const excluded = "script,style,noscript,svg,textarea,input,select,option,[contenteditable='true'],[data-site-content-ignore],#siteAnnouncement,#notesList,#bodyInput,#titleInput,#noteTags,#attachmentList,#accountRows,#content,#title,.stats,#message,#saveState,#updatedAt,#wordCount,.note-preview,.note-title,.note-card,.content-status";
+  const excluded = "script,style,noscript,svg,textarea,input,select,option,[contenteditable='true'],[data-site-content-ignore],#siteAnnouncement,#founderProfile,#notesList,#bodyInput,#titleInput,#noteTags,#attachmentList,#accountRows,#content,#title,.stats,#message,#saveState,#updatedAt,#wordCount,.note-preview,.note-title,.note-card,.content-status";
   const overrides = {};
   const originals = new WeakMap();
   let latestIndex = "";
@@ -107,6 +107,33 @@
     document.body.style.paddingTop = `${height + 12}px`;
   }
 
+  function applyProfile(profile) {
+    const card = document.querySelector("#founderProfile");
+    if (!card || !profile || typeof profile !== "object") return;
+    const photo = document.querySelector("#founderPhoto");
+    const placeholder = document.querySelector("#founderPlaceholder");
+    const name = typeof profile.name === "string" ? profile.name.trim() : "";
+    const role = typeof profile.role === "string" ? profile.role.trim() : "";
+    const badge = typeof profile.badge === "string" ? profile.badge.trim() : "";
+    const eyebrow = typeof profile.eyebrow === "string" ? profile.eyebrow.trim() : "";
+    const photoUrl = typeof profile.photoUrl === "string" && /^\/api\/site-content\/profile-image\/[a-f0-9]{24}$/i.test(profile.photoUrl) ? profile.photoUrl : "";
+    const positionX = Number.isInteger(profile.imagePositionX) ? Math.min(100, Math.max(0, profile.imagePositionX)) : 50;
+    const positionY = Number.isInteger(profile.imagePositionY) ? Math.min(100, Math.max(0, profile.imagePositionY)) : 50;
+    document.querySelector("#founderName").textContent = name || "Memory Keep Note";
+    document.querySelector("#founderRole").textContent = role;
+    document.querySelector("#founderRole").hidden = !role;
+    document.querySelector("#founderBadge").textContent = badge;
+    document.querySelector("#founderBadge").hidden = !badge;
+    document.querySelector("#founderEyebrow").textContent = eyebrow;
+    photo.alt = typeof profile.alt === "string" && profile.alt.trim() ? profile.alt : name || "Profile photo";
+    photo.style.objectPosition = `${positionX}% ${positionY}%`;
+    photo.hidden = !photoUrl;
+    placeholder.hidden = Boolean(photoUrl);
+    if (photoUrl) photo.src = photoUrl;
+    else photo.removeAttribute("src");
+    card.hidden = profile.enabled === false || (!name && !photoUrl);
+  }
+
   window.addEventListener("mkn:announcement-updated", event => {
     document.querySelector("#siteAnnouncement")?.remove();
     document.body.style.paddingTop = "";
@@ -122,8 +149,9 @@
   document.head.appendChild(announcementStyle);
 
   window.addEventListener("message", event => {
-    if (event.origin !== location.origin || event.source !== window.parent || event.data?.type !== "mkn:site-content-preview") return;
-    applyOverrides(event.data.overrides || {}, true, false);
+    if (event.origin !== location.origin || event.source !== window.parent) return;
+    if (event.data?.type === "mkn:site-content-preview") applyOverrides(event.data.overrides || {}, true, false);
+    if (event.data?.type === "mkn:site-profile-preview") applyProfile(event.data.profile);
   });
 
   if (window.parent !== window) {
@@ -141,6 +169,7 @@
       applyOverrides();
     }
     addAnnouncement(content.announcement);
+    applyProfile(content.profile);
   }).catch(error => console.warn("Could not load published website content.", error));
 
   const observer = new MutationObserver(() => {
