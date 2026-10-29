@@ -1,12 +1,394 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin | Memory Keep Note</title><link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<style>:root{color-scheme:dark;--bg:#090812;--panel:#141321;--line:#ffffff1f;--ink:#f6f4ff;--muted:#b7b1c9;--good:#7be6b0}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 0 0,#2e2361,transparent 35%),var(--bg);color:var(--ink);font:15px system-ui,sans-serif}.wrap{width:min(1180px,calc(100% - 32px));margin:auto;padding:30px 0 70px}header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:30px}.brand{display:flex;gap:10px;align-items:center;font-weight:750}.mark{display:grid;place-items:center;width:37px;height:37px;border-radius:12px;background:linear-gradient(135deg,#8b7bff,#ff5fa8)}button,a.button{border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#ffffff0a;color:var(--ink);font:inherit;cursor:pointer;text-decoration:none}.danger{border-color:#ff759c66;color:#ffc0cf}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.stat,.table-wrap{border:1px solid var(--line);border-radius:17px;background:var(--panel)}.stat{padding:20px}.stat span{display:block;color:var(--muted);font-size:13px}.stat strong{display:block;margin-top:7px;font-size:31px}.table-wrap{margin-top:24px;overflow:auto}.table-head{display:flex;justify-content:space-between;gap:15px;align-items:center;padding:20px}.table-head h2{margin:0;font-size:18px}.table-head p{margin:4px 0 0;color:var(--muted);font-size:13px}table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:14px 20px;text-align:left;border-top:1px solid var(--line)}th{color:var(--muted);font-size:12px;font-weight:600}td{font-size:14px}.name{font-weight:650}.email{color:var(--muted);font-size:12px;margin-top:3px}.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:#ffffff12;color:var(--muted);font-size:12px}.badge.active{background:#48d8941c;color:var(--good)}.badge.admin{background:#9889ff27;color:#c6beff}.actions{display:flex;gap:7px}#message{min-height:20px;color:#ffb8ca}body.loading .wrap{opacity:.25;pointer-events:none}@media(max-width:620px){.stats{grid-template-columns:1fr}.wrap{width:min(100% - 22px,1180px)}}</style></head>
-<body class="loading"><main class="wrap"><header><div class="brand"><span class="mark">&#10022;</span><span>Memory Keep Note <small style="color:#b7b1c9">/ Admin</small></span></div><div><a class="button" href="memorykeepnote.html">Open notes</a> <button id="logout">Sign out</button></div></header><p id="message" role="alert"></p><section class="stats"><article class="stat"><span>Total accounts</span><strong id="users">—</strong></article><article class="stat"><span>Active notes</span><strong id="notes">—</strong></article><article class="stat"><span>Suspended accounts</span><strong id="suspended">—</strong></article></section><section class="table-wrap"><div class="table-head"><div><h2>Accounts</h2><p>Private notes are never displayed here.</p></div><button id="refresh">Refresh</button></div><table><thead><tr><th>Person</th><th>Notes</th><th>Joined</th><th>Status</th><th>Controls</th></tr></thead><tbody id="accounts"></tbody></table></section></main>
-<script>
-const $=s=>document.querySelector(s),escape=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
-async function api(url,options={}){const r=await fetch(url,{...options,headers:{"Content-Type":"application/json",...(options.headers||{})}}),d=r.status===204?null:await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||"Request failed.");return d}
-function row(a){const status=a.isAdmin?"<span class='badge admin'>Administrator</span>":a.isSuspended?"<span class='badge'>Suspended</span>":"<span class='badge active'>Active</span>",controls=a.isAdmin?"Protected":"<div class='actions'><button data-action='"+(a.isSuspended?"restore":"suspend")+"' data-id='"+a.id+"'>"+(a.isSuspended?"Restore":"Suspend")+"</button><button class='danger' data-action='delete' data-id='"+a.id+"'>Delete</button></div>";return "<tr><td><div class='name'>"+escape(a.fullName||"Unnamed")+"</div><div class='email'>"+escape(a.email)+"</div></td><td>"+a.noteCount+"</td><td>"+new Date(a.createdAt).toLocaleDateString()+"</td><td>"+status+"</td><td>"+controls+"</td></tr>"}
-async function load(){try{const d=await api("/api/admin/overview");$("#users").textContent=d.stats.userCount;$("#notes").textContent=d.stats.noteCount;$("#suspended").textContent=d.stats.suspendedCount;$("#accounts").innerHTML=d.accounts.map(row).join("")}catch(e){$("#message").textContent=e.message;if(/sign in|administrator|unavailable/i.test(e.message))location.href="sign-in.html"}finally{document.body.classList.remove("loading")}}
-$("#accounts").addEventListener("click",async e=>{const b=e.target.closest("button[data-action]");if(!b)return;const action=b.dataset.action,id=b.dataset.id;if(action==="delete"&&!confirm("Delete this account and all of its notes permanently?"))return;if(action==="suspend"&&!confirm("Suspend this account?"))return;b.disabled=true;try{if(action==="delete")await api("/api/admin/accounts/"+id,{method:"DELETE",body:"{}"});else await api("/api/admin/accounts/"+id,{method:"PATCH",body:JSON.stringify({action})});await load()}catch(x){$("#message").textContent=x.message;b.disabled=false}});
-$("#refresh").addEventListener("click",load);$("#logout").addEventListener("click",async()=>{await api("/api/auth/logout",{method:"POST",body:"{}"});location.href="/"});load();
-</script></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin | Memory Keep Note</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#090812">
+  <script src="/pwa-register.js" defer></script>
+  <script src="/site-content.js" defer></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #090812;
+      --panel: #141321;
+      --line: #ffffff1f;
+      --ink: #f6f4ff;
+      --muted: #b7b1c9;
+      --good: #7be6b0;
+      --accent: #a397ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background: radial-gradient(circle at 0 0, #2e2361, transparent 35%), var(--bg);
+      color: var(--ink);
+      font: 15px/1.5 system-ui, sans-serif;
+    }
+
+    button, a { font: inherit; }
+    button { color: inherit; }
+
+    .app-shell { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      display: flex;
+      flex: 0 0 264px;
+      flex-direction: column;
+      width: 264px;
+      height: 100vh;
+      padding: 24px 16px 18px;
+      border-right: 1px solid var(--line);
+      background: #0e0d19eF;
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 0 8px 26px;
+      color: var(--ink);
+      font-weight: 750;
+      text-decoration: none;
+    }
+
+    .brand img { width: 38px; height: 38px; border-radius: 12px; }
+    .brand-copy { display: grid; line-height: 1.25; }
+    .brand-copy small { margin-top: 4px; color: var(--muted); font-size: 12px; font-weight: 500; }
+    .nav-label { padding: 0 10px 9px; color: #88839c; font-size: 10px; font-weight: 750; letter-spacing: .13em; }
+    .sidebar nav { display: grid; gap: 6px; }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 44px;
+      padding: 0 12px;
+      border: 1px solid transparent;
+      border-radius: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: background .15s ease, color .15s ease, border-color .15s ease;
+    }
+
+    .nav-link:hover { background: #ffffff0a; color: var(--ink); }
+    .nav-link.active { border-color: #a397ff26; background: #a397ff16; color: #ded9ff; }
+    .nav-icon { display: grid; width: 20px; place-items: center; color: var(--accent); font-size: 17px; }
+
+    .sidebar-bottom { display: grid; gap: 10px; margin-top: auto; }
+    .secure-note { padding: 12px; border: 1px solid var(--line); border-radius: 13px; background: #ffffff06; }
+    .secure-note strong { display: block; font-size: 12px; }
+    .secure-note span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; }
+
+    .sidebar-action, .top-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #ffffff08;
+      color: var(--ink);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .15s ease, border-color .15s ease;
+    }
+
+    .sidebar-action:hover, .top-action:hover { border-color: #a397ff5c; background: #a397ff16; }
+
+    .main-content { width: min(100% - 48px, 1120px); margin: 0 auto; padding: 36px 0 56px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
+    .page-heading h1 { margin: 0; font-size: clamp(25px, 3vw, 32px); letter-spacing: -.035em; }
+    .page-heading p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
+    .top-actions { display: flex; align-items: center; gap: 9px; }
+    .mobile-menu { display: none; }
+    #message { min-height: 20px; margin: -12px 0 12px; color: #ffb8ca; }
+
+    .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .stat, .table-wrap { border: 1px solid var(--line); border-radius: 17px; background: #141321d9; box-shadow: 0 12px 35px #0002; }
+    .stat { position: relative; overflow: hidden; padding: 12px 16px; }
+    .stat::after { position: absolute; top: -30px; right: -30px; width: 76px; height: 76px; border-radius: 50%; background: #a397ff0c; content: ""; }
+    .stat span { display: block; color: var(--muted); font-size: 12px; }
+    .stat strong { display: block; margin-top: 4px; font-size: 25px; line-height: 1.1; }
+
+    .table-wrap { margin-top: 16px; overflow: hidden; }
+    .table-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; }
+    .table-head h2 { margin: 0; font-size: 16px; }
+    .table-head p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+    .table-scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 1050px; }
+    th, td { padding: 10px 16px; border-top: 1px solid var(--line); text-align: left; }
+    th { color: #aaa4bd; font-size: 10px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+    td { font-size: 12px; }
+    .name { font-weight: 650; }
+    .email { margin-top: 3px; color: var(--muted); font-size: 12px; }
+    .badge { display: inline-block; padding: 4px 9px; border-radius: 999px; background: #ffffff12; color: var(--muted); font-size: 11px; font-weight: 600; }
+    .badge.active { background: #48d8941c; color: var(--good); }
+    .badge.admin { background: #9889ff27; color: #c6beff; }
+    .actions { display: flex; gap: 7px; }
+    .row-action { min-height: 32px; padding: 0 9px; border: 1px solid var(--line); border-radius: 8px; background: #ffffff08; color: var(--ink); font-size: 12px; cursor: pointer; }
+    .row-action:hover { background: #ffffff14; }
+    .row-action.danger { border-color: #ff759c55; color: #ffc0cf; }
+    .protected { color: var(--muted); font-size: 12px; }
+    .storage-controls { display:grid; grid-template-columns:minmax(76px,1fr) auto; gap:5px; min-width:155px; }
+    .storage-controls input { width:100%; min-width:0; padding:6px 7px; border:1px solid var(--line); border-radius:7px; background:#ffffff08; color:var(--ink); font:inherit; font-size:11px; }
+    .storage-controls button { min-height:30px; padding:0 8px; border:1px solid #a397ff45; border-radius:7px; background:#a397ff16; color:var(--ink); font:inherit; font-size:11px; cursor:pointer; }
+    .storage-admin { color:var(--good); font-size:11px; white-space:nowrap; }
+
+    .admin-view[hidden] { display: none; }
+    .notes-frame { display: block; width: 100%; height: 100vh; min-height: 620px; border: 1px solid var(--line); border-radius: 16px; background: #07070f; }
+    .content-panel { margin-bottom:16px; padding:18px; border:1px solid var(--line); border-radius:17px; background:#141321d9; }
+    .content-panel h2 { margin:0; font-size:17px; }
+    .content-panel p { margin:5px 0 14px; color:var(--muted); font-size:13px; }
+    .content-form { display:grid; gap:11px; }
+    .content-form label { display:grid; gap:5px; color:var(--muted); font-size:12px; }
+    .content-form input[type="text"], .content-form textarea, .cms-field textarea { width:100%; min-width:0; padding:10px 11px; border:1px solid var(--line); border-radius:10px; background:#ffffff08; color:var(--ink); font:inherit; }
+    .content-form textarea, .cms-field textarea { min-height:76px; resize:vertical; }
+    .content-form .inline-controls { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+    .content-form .inline-controls label { display:flex; align-items:center; gap:7px; }
+    .cms-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:10px; align-items:end; }
+    .cms-toolbar label { display:grid; gap:5px; color:var(--muted); font-size:12px; }
+    .rounded-select { position:relative; min-width:0; }
+    .rounded-select-trigger { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; min-height:42px; padding:9px 12px; border:1px solid var(--line); border-radius:12px; background:#ffffff08; color:var(--ink); font:inherit; text-align:left; cursor:pointer; }
+    .rounded-select-trigger:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+    .rounded-select-menu { position:absolute; z-index:40; top:calc(100% + 6px); left:0; right:0; display:grid; gap:3px; max-height:260px; overflow:auto; padding:5px; border:1px solid #ffffff2b; border-radius:14px; background:#171626; box-shadow:0 12px 32px #0008; }
+    .rounded-select-menu[hidden] { display:none; }
+    .rounded-select-option { width:100%; min-height:36px; padding:8px 10px; border:0; border-radius:9px; background:transparent; color:var(--ink); font:inherit; text-align:left; cursor:pointer; }
+    .rounded-select-option:hover, .rounded-select-option:focus-visible { outline:none; background:#a397ff22; }
+    .rounded-select-option[aria-selected="true"] { background:#a397ff29; color:#ded9ff; }
+    .cms-fields { display:grid; gap:10px; margin-top:14px; }
+    .cms-field { display:grid; gap:5px; padding:11px; border:1px solid var(--line); border-radius:11px; background:#ffffff05; }
+    .cms-field span { color:var(--muted); font-size:12px; }
+    .cms-field small { overflow-wrap:anywhere; color:#8f899f; font-size:11px; }
+    .billing-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .billing-features { display:flex; flex-wrap:wrap; gap:12px; }
+    .billing-features label { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:12px; }
+    .billing-notice { padding:11px; border:1px solid var(--line); border-radius:11px; color:var(--muted); font-size:12px; line-height:1.5; }
+    .cms-preview { display:block; width:100%; height:min(72vh,760px); min-height:420px; margin-top:14px; border:1px solid var(--line); border-radius:14px; background:#090812; }
+    .content-status { min-height:18px; color:var(--good); font-size:12px; }
+
+    body.loading .main-content { opacity: .35; pointer-events: none; }
+    .sidebar-backdrop { display: none; }
+
+    @media (max-width: 760px) {
+      .sidebar { position: fixed; z-index: 20; left: 0; width: min(290px, calc(100vw - 56px)); transform: translateX(-105%); transition: transform .2s ease; }
+      body.sidebar-open .sidebar { transform: translateX(0); }
+      .sidebar-backdrop { position: fixed; z-index: 19; inset: 0; display: block; border: 0; background: #03020bb8; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+      body.sidebar-open .sidebar-backdrop { opacity: 1; pointer-events: auto; }
+      .main-content { width: min(100% - 32px, 1120px); padding-top: 24px; }
+      .cms-toolbar { grid-template-columns:1fr; }
+      .cms-toolbar > .top-action { justify-content:center; }
+      .billing-fields { grid-template-columns:1fr; }
+      .mobile-menu { display: inline-flex; width: 40px; min-height: 40px; padding: 0; }
+      .topbar { justify-content: flex-start; }
+      .top-actions { margin-left: auto; }
+      .top-action-label { display: none; }
+    }
+
+    @media (max-width: 560px) {
+      .main-content { width: calc(100% - 24px); padding-top: 18px; }
+      .topbar { align-items: flex-start; }
+      .page-heading p { max-width: 240px; font-size: 12px; }
+      .top-action { min-height: 38px; padding: 0 10px; }
+      .stats { grid-template-columns: 1fr; gap: 9px; }
+      .stat { display: flex; align-items: center; justify-content: space-between; padding: 13px 15px; }
+      .stat strong { margin: 0; font-size: 25px; }
+      .table-head { padding: 16px; }
+      th, td { padding-right: 14px; padding-left: 14px; }
+      #message { margin-top: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body class="loading">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Admin navigation">
+      <a class="brand" href="/">
+        <img src="/favicon.svg" alt="">
+        <span class="brand-copy">Memory Keep Note<small>Admin console</small></span>
+      </a>
+      <span class="nav-label">WORKSPACE</span>
+      <nav>
+        <a class="nav-link active" href="#overview" aria-current="page"><span class="nav-icon" aria-hidden="true">⌂</span>Overview</a>
+        <a class="nav-link" href="#accounts"><span class="nav-icon" aria-hidden="true">♙</span>Accounts</a>
+        <a class="nav-link" href="#notes"><span class="nav-icon" aria-hidden="true">✎</span>Notes</a>
+        <a class="nav-link" href="#billing"><span class="nav-icon" aria-hidden="true">$</span>Billing</a>
+        <a class="nav-link" href="#website-content"><span class="nav-icon" aria-hidden="true">▤</span>Website content</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="secure-note"><strong>Private admin area</strong><span>Account and note totals only. Note contents stay private.</span></div>
+        <button class="sidebar-action" id="logout" type="button"><span aria-hidden="true">↪</span>Sign out</button>
+      </div>
+    </aside>
+    <button class="sidebar-backdrop" id="sidebarBackdrop" type="button" aria-label="Close navigation" tabindex="-1"></button>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="top-action mobile-menu" id="menuToggle" type="button" aria-controls="sidebar" aria-expanded="false" aria-label="Open admin navigation">☰</button>
+        <div class="page-heading">
+          <h1>Overview</h1>
+          <p>Manage accounts and review activity at a glance.</p>
+        </div>
+        <div class="top-actions">
+          <button class="top-action" id="refresh" type="button"><span aria-hidden="true">↻</span><span class="top-action-label">Refresh</span></button>
+        </div>
+      </header>
+      <p id="message" role="alert" aria-live="polite"></p>
+
+      <section class="admin-view" id="overviewView" aria-label="Account overview">
+        <section class="stats">
+          <article class="stat"><span>Total accounts</span><strong id="users">—</strong></article>
+          <article class="stat"><span>Active notes</span><strong id="notes">—</strong></article>
+          <article class="stat"><span>Suspended accounts</span><strong id="suspended">—</strong></article>
+          <article class="stat"><span>Storage used across accounts</span><strong id="storageUsed">—</strong></article>
+        </section>
+      </section>
+
+      <section class="table-wrap admin-view" id="accountsView">
+        <div class="table-head">
+          <div><h2>Accounts</h2><p>Private notes are never displayed here.</p></div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Person</th><th>Notes</th><th>Storage</th><th>Plan</th><th>Joined</th><th>Status</th><th>Controls</th></tr></thead>
+            <tbody id="accountRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="admin-view" id="notesView" hidden>
+        <iframe class="notes-frame" id="notesFrame" title="Your private notes" data-src="/memorykeepnote.html" loading="lazy"></iframe>
+      </section>
+
+      <section class="admin-view" id="billingView" hidden>
+        <section class="content-panel">
+          <h2>Plus plan</h2>
+          <p>Manage the paid plan and its server-enforced entitlements. Prices are USD. Current subscribers retain their existing Stripe price when prices change.</p>
+          <form class="content-form" id="billingForm">
+            <div class="billing-fields">
+              <label for="billingPlanName">Plan name<input id="billingPlanName" type="text" maxlength="40" required></label>
+              <label for="billingStorageGb">Storage quota (GB)<input id="billingStorageGb" type="number" min="1" max="100000" step="0.1" required></label>
+              <label for="billingMonthly">Monthly price (USD)<input id="billingMonthly" type="number" min="1" max="1000000" step="0.01" required></label>
+              <label for="billingYearly">Annual price (USD)<input id="billingYearly" type="number" min="1" max="1000000" step="0.01" required></label>
+            </div>
+            <div class="billing-features" aria-label="Plus features">
+              <label><input type="checkbox" name="billingFeature" value="attachments"> Images and file attachments</label>
+              <label><input type="checkbox" name="billingFeature" value="sharing"> Note sharing</label>
+              <label><input type="checkbox" name="billingFeature" value="themes"> Custom note colors/themes</label>
+            </div>
+            <label><span><input id="billingEnabled" type="checkbox"> Enable Plus checkout for new subscriptions</span></label>
+            <div class="billing-notice" id="billingConfiguration"></div>
+            <div class="content-status" id="billingStatus" role="status"></div>
+            <button class="top-action" id="saveBilling" type="submit">Save billing settings</button>
+          </form>
+        </section>
+      </section>
+
+      <section class="admin-view" id="websiteContentView" hidden>
+        <section class="content-panel">
+          <h2>Site-wide announcement</h2>
+          <p>Publish a short banner across the website. Visitors can dismiss it for the current page view.</p>
+          <form class="content-form" id="announcementForm">
+            <label><span><input id="announcementEnabled" type="checkbox"> Show announcement</span></label>
+            <label for="announcementMessage">Announcement text<textarea id="announcementMessage" maxlength="240" rows="2" placeholder="Share an important update"></textarea></label>
+            <div class="inline-controls">
+              <label>Style
+                <div class="rounded-select" id="announcementTone" data-value="info">
+                  <button class="rounded-select-trigger" type="button" role="combobox" aria-label="Announcement style" aria-haspopup="listbox" aria-expanded="false"><span>Information</span><span aria-hidden="true">⌄</span></button>
+                  <div class="rounded-select-menu" role="listbox" aria-label="Announcement style" hidden>
+                    <button class="rounded-select-option" type="button" role="option" data-value="info" aria-selected="true">Information</button>
+                    <button class="rounded-select-option" type="button" role="option" data-value="success" aria-selected="false">Success</button>
+                    <button class="rounded-select-option" type="button" role="option" data-value="warning" aria-selected="false">Warning</button>
+                  </div>
+                </div>
+              </label>
+              <button class="top-action" type="submit">Publish announcement</button>
+            </div>
+            <div class="content-status" id="announcementStatus" role="status"></div>
+          </form>
+        </section>
+        <section class="content-panel">
+          <h2>Edit website text</h2>
+          <p>Choose a page, edit its visible text below, and preview changes live. Form fields, note contents, and account data are excluded.</p>
+          <div class="cms-toolbar">
+            <label>Page
+              <div class="rounded-select" id="contentPage" data-value="index.html">
+                <button class="rounded-select-trigger" type="button" role="combobox" aria-label="Preview website page" aria-haspopup="listbox" aria-expanded="false"><span>Homepage</span><span aria-hidden="true">⌄</span></button>
+                <div class="rounded-select-menu" role="listbox" aria-label="Website page" hidden>
+                  <button class="rounded-select-option" type="button" role="option" data-value="index.html" aria-selected="true">Homepage</button>
+                  <button class="rounded-select-option" type="button" role="option" data-value="sign-in.html" aria-selected="false">Sign in</button>
+                  <button class="rounded-select-option" type="button" role="option" data-value="sign-up.html" aria-selected="false">Sign up</button>
+                  <button class="rounded-select-option" type="button" role="option" data-value="forgot-password.html" aria-selected="false">Forgot password</button>
+                  <button class="rounded-select-option" type="button" role="option" data-value="reset-password.html" aria-selected="false">Reset password</button>
+                  <button class="rounded-select-option" type="button" role="option" data-value="memorykeepnote.html" aria-selected="false">Notes workspace</button>
+                  <button class="rounded-select-option" type="button" role="option" data-value="shared-note.html" aria-selected="false">Shared note page</button>
+                  <button class="rounded-select-option" type="button" role="option" data-value="admin.html" aria-selected="false">Admin console</button>
+                  <button class="rounded-select-option" type="button" role="option" data-value="admin-unlock.html" aria-selected="false">Admin access</button>
+                  <button class="rounded-select-option" type="button" role="option" data-value="offline.html" aria-selected="false">Offline page</button>
+                </div>
+              </div>
+            </label>
+            <button class="top-action" id="savePageContent" type="button">Save page text</button>
+            <a class="top-action" href="#notes">Preview user dashboard</a>
+          </div>
+          <div class="content-status" id="pageContentStatus" role="status"></div>
+          <div class="cms-fields" id="cmsFields" aria-live="polite"></div>
+          <iframe class="cms-preview" id="contentFrame" title="Website content preview" loading="lazy"></iframe>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const $=selector=>document.querySelector(selector);
+    const escape=value=>String(value).replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[char]));
+    function parseApiBody(response,text){if(!text)return {};const type=response.headers.get("content-type")||"";if(!type.includes("application/json"))return {error:text};try{return JSON.parse(text)}catch{return {error:text}}}
+    async function api(url,options={}){const response=await fetch(url,{...options,headers:{"Content-Type":"application/json",...(options.headers||{})}}),text=response.status===204?"":await response.text(),data=parseApiBody(response,text);if(!response.ok)throw Error(data.error||text||("Request failed ("+response.status+")."));return data}
+    function formatBytes(bytes){if(bytes<1024)return bytes+" B";const units=["KB","MB","GB","TB"];let value=bytes/1024,index=0;while(value>=1024&&index<units.length-1){value/=1024;index++}return value.toFixed(value>=10?0:1)+" "+units[index]}
+    function row(account){const status=account.isAdmin?"<span class='badge admin'>Administrator</span>":account.isSuspended?"<span class='badge'>Suspended</span>":"<span class='badge active'>Active</span>",storage=account.isAdmin?"<span class='storage-admin'>"+formatBytes(account.storageUsedBytes)+" · Unlimited</span>":"<div class='storage-controls'><input aria-label='Storage limit in GB for "+escape(account.email)+"' type='number' min='0.1' max='100000' step='0.1' value='"+(account.storageQuotaBytes/1073741824).toFixed(1)+"'><button type='button' data-action='storage' data-id='"+account.id+"'>Set</button><span class='protected'>"+formatBytes(account.storageUsedBytes)+" used</span></div>",plan=account.isAdmin?"<span class='badge admin'>Full access</span>":account.planId==="plus"?"<span class='badge active'>Plus</span>"+(account.manualGrant?" <button class='row-action' data-action='revoke-plus' data-id='"+account.id+"'>Revoke grant</button>":"<div class='protected'>"+escape(account.subscriptionStatus)+"</div>"): "<span class='badge'>Free</span> <button class='row-action' data-action='grant-plus' data-id='"+account.id+"'>Grant Plus</button>",controls=account.isAdmin?"<span class='protected'>Protected account</span>":"<div class='actions'><button class='row-action' data-action='"+(account.isSuspended?"restore":"suspend")+"' data-id='"+account.id+"'>"+(account.isSuspended?"Restore":"Suspend")+"</button><button class='row-action danger' data-action='delete' data-id='"+account.id+"'>Delete</button></div>";return "<tr><td><div class='name'>"+escape(account.fullName||"Unnamed")+"</div><div class='email'>"+escape(account.email)+"</div></td><td>"+account.noteCount+"</td><td>"+storage+"</td><td>"+plan+"</td><td>"+new Date(account.createdAt).toLocaleDateString()+"</td><td>"+status+"</td><td>"+controls+"</td></tr>"}
+    async function load(){const refresh=$("#refresh");refresh.disabled=true;$("#message").textContent="";try{const [data,planData]=await Promise.all([api("/api/admin/overview"),api("/api/admin/billing/accounts")]),plans=Object.fromEntries(planData.accounts.map(account=>[account.id,account]));$("#users").textContent=data.stats.userCount;$("#notes").textContent=data.stats.noteCount;$("#suspended").textContent=data.stats.suspendedCount;$("#storageUsed").textContent=formatBytes(data.stats.storageUsedBytes);$("#accountRows").innerHTML=data.accounts.map(account=>row({...account,...plans[account.id]})).join("")}catch(error){$("#message").textContent=error.message;if(/sign in|administrator|unavailable/i.test(error.message))location.href="sign-in.html"}finally{document.body.classList.remove("loading");refresh.disabled=false}}
+
+    function closeSidebar(){document.body.classList.remove("sidebar-open");$("#menuToggle").setAttribute("aria-expanded","false");$("#menuToggle").setAttribute("aria-label","Open admin navigation")}
+    const cms={page:"index.html",items:[],overrides:{},pages:{},loaded:false,indexReceived:false,dirty:false};
+    const billing={loaded:false};
+    async function loadBilling(){const data=await api("/api/admin/billing"),plan=data.plan;$("#billingPlanName").value=plan.name;$("#billingStorageGb").value=plan.storageQuotaGb;$("#billingMonthly").value=plan.monthlyAmount;$("#billingYearly").value=plan.yearlyAmount;$("#billingEnabled").checked=plan.enabled;document.querySelectorAll("[name=billingFeature]").forEach(input=>input.checked=plan.features.includes(input.value));$("#billingConfiguration").textContent=data.stripeConfigured&&data.webhookConfigured?"Stripe and webhook are configured. New subscriptions are verified server-side.":"Before enabling paid checkout, set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET on the server and register /api/billing/webhook in Stripe.";billing.loaded=true}
+    async function loadCmsSettings(){const content=await api("/api/site-content");cms.pages=content.pages||{};$("#announcementEnabled").checked=Boolean(content.announcement?.enabled);$("#announcementMessage").value=content.announcement?.message||"";setRoundedSelectValue($("#announcementTone"),content.announcement?.tone||"info");cms.loaded=true}
+    function setRoundedSelectValue(select,value,emit=false){const option=[...select.querySelectorAll(".rounded-select-option")].find(item=>item.dataset.value===value);if(!option)return;select.dataset.value=value;select.querySelector(".rounded-select-trigger span").textContent=option.textContent;select.querySelectorAll(".rounded-select-option").forEach(item=>item.setAttribute("aria-selected",String(item===option)));if(emit)select.dispatchEvent(new Event("change"))}
+    function initializeRoundedSelects(){document.querySelectorAll(".rounded-select").forEach(select=>{const trigger=select.querySelector(".rounded-select-trigger"),menu=select.querySelector(".rounded-select-menu"),options=[...select.querySelectorAll(".rounded-select-option")];trigger.addEventListener("click",()=>{const open=menu.hidden;document.querySelectorAll(".rounded-select-menu").forEach(item=>item.hidden=true);document.querySelectorAll(".rounded-select-trigger").forEach(item=>item.setAttribute("aria-expanded","false"));menu.hidden=!open;trigger.setAttribute("aria-expanded",String(open));if(open)options.find(item=>item.dataset.value===select.dataset.value)?.focus()});options.forEach(option=>option.addEventListener("click",()=>{setRoundedSelectValue(select,option.dataset.value,true);menu.hidden=true;trigger.setAttribute("aria-expanded","false");trigger.focus()}));trigger.addEventListener("keydown",event=>{if(event.key==="ArrowDown"||event.key==="ArrowUp"){event.preventDefault();menu.hidden=false;trigger.setAttribute("aria-expanded","true");(options.find(item=>item.dataset.value===select.dataset.value)||options[0]).focus()}});menu.addEventListener("keydown",event=>{const index=options.indexOf(document.activeElement);if(event.key==="Escape"){event.preventDefault();menu.hidden=true;trigger.setAttribute("aria-expanded","false");trigger.focus()}else if(event.key==="ArrowDown"||event.key==="ArrowUp"){event.preventDefault();options[(index+(event.key==="ArrowDown"?1:-1)+options.length)%options.length].focus()}else if(event.key==="Home"||event.key==="End"){event.preventDefault();options[event.key==="Home"?0:options.length-1].focus()}})});document.addEventListener("click",event=>{if(event.target.closest(".rounded-select"))return;document.querySelectorAll(".rounded-select-menu").forEach(menu=>menu.hidden=true);document.querySelectorAll(".rounded-select-trigger").forEach(trigger=>trigger.setAttribute("aria-expanded","false"))})}
+    function renderCmsFields(items){const fields=$("#cmsFields");fields.replaceChildren();cms.items=items;items.forEach((item,index)=>{const label=document.createElement("label");label.className="cms-field";const heading=document.createElement("span");heading.textContent="Text block "+(index+1);const original=document.createElement("small");original.textContent="Current page text: "+item.defaultText.trim().slice(0,180);const input=document.createElement("textarea");input.value=item.text;input.maxLength=2000;input.setAttribute("aria-label","Edit text block "+(index+1));input.addEventListener("input",()=>{const current={...cms.overrides};if(input.value===item.defaultText)delete current[item.key];else current[item.key]=input.value;cms.overrides=current;cms.dirty=true;const frame=$("#contentFrame");frame.contentWindow?.postMessage({type:"mkn:site-content-preview",overrides:cms.overrides},location.origin);$("#pageContentStatus").textContent="Preview updated · remember to save";});label.append(heading,original,input);fields.appendChild(label)});$("#pageContentStatus").textContent=items.length?"Loaded "+items.length+" editable text blocks.":"No editable text was found on this page."}
+    function loadCmsPage(page){cms.page=page;cms.items=[];cms.overrides={...(cms.pages[page]||{})};cms.indexReceived=false;cms.dirty=false;$("#cmsFields").replaceChildren();$("#pageContentStatus").textContent="Loading page preview…";const path=page==="index.html"?"/":"/"+page;$("#contentFrame").src=path+"?cms-preview="+Date.now()}
+    window.addEventListener("message",event=>{if(event.origin!==location.origin)return;const data=event.data,notesFrame=$("#notesFrame"),contentFrame=$("#contentFrame");if(event.source===notesFrame.contentWindow&&data?.type==="mkn:embedded-height"&&Number.isFinite(data.height)&&data.height>=0&&data.height<=1000000){const height=Math.ceil(data.height)+2;if(Math.abs(notesFrame.getBoundingClientRect().height-height)>1)notesFrame.style.height=height+"px";return}if(event.source!==contentFrame.contentWindow||data?.type!=="mkn:site-content-index"||data.page!==cms.page||!Array.isArray(data.items)||cms.dirty)return;cms.indexReceived=true;renderCmsFields(data.items.filter(item=>item&&typeof item.key==="string"&&typeof item.text==="string"&&typeof item.defaultText==="string"))});
+    async function saveCmsPage(){const button=$("#savePageContent");button.disabled=true;$("#pageContentStatus").textContent="Saving…";try{await api("/api/admin/site-content/page",{method:"PUT",body:JSON.stringify({page:cms.page,overrides:cms.overrides})});cms.pages[cms.page]={...cms.overrides};cms.dirty=false;$("#pageContentStatus").textContent="Page text saved and published."}catch(error){$("#pageContentStatus").textContent=error.message}finally{button.disabled=false}}
+    function syncNavigation(){const valid=["#accounts","#notes","#billing","#website-content"],current=valid.includes(location.hash)?location.hash:"#overview",views={"#overview":"#overviewView","#accounts":"#accountsView","#notes":"#notesView","#billing":"#billingView","#website-content":"#websiteContentView"},titles={"#overview":["Overview","Manage accounts and review activity at a glance."],"#accounts":["Accounts","Review account status and manage access."],"#notes":["Your notes","Your private notes, right inside the admin console."],"#billing":["Billing","Configure Stripe pricing, paid features, and access grants."],"#website-content":["Website content","Edit text across your pages and publish announcements."]};$("#sidebar").querySelectorAll("nav a").forEach(link=>{const active=link.hash===current;link.classList.toggle("active",active);if(active)link.setAttribute("aria-current","page");else link.removeAttribute("aria-current")});Object.entries(views).forEach(([hash,selector])=>{const view=$(selector);view.hidden=hash!==current});$(".page-heading h1").textContent=titles[current][0];$(".page-heading p").textContent=titles[current][1];$("#refresh").hidden=current==="#notes"||current==="#website-content"||current==="#billing";if(current==="#notes"&&!$("#notesFrame").src)$("#notesFrame").src=$("#notesFrame").dataset.src;if(current==="#website-content"&&!cms.loaded)loadCmsSettings().then(()=>loadCmsPage($("#contentPage").dataset.value)).catch(error=>$("#pageContentStatus").textContent=error.message);if(current==="#billing"&&!billing.loaded)loadBilling().catch(error=>$("#billingStatus").textContent=error.message)}
+    $("#menuToggle").addEventListener("click",()=>{const open=!document.body.classList.contains("sidebar-open");document.body.classList.toggle("sidebar-open",open);$("#menuToggle").setAttribute("aria-expanded",String(open));$("#menuToggle").setAttribute("aria-label",open?"Close admin navigation":"Open admin navigation")});
+    $("#sidebarBackdrop").addEventListener("click",closeSidebar);
+    $("#sidebar").querySelectorAll("nav a").forEach(link=>link.addEventListener("click",closeSidebar));
+    document.addEventListener("keydown",event=>{if(event.key==="Escape")closeSidebar()});
+    window.addEventListener("hashchange",syncNavigation);
+    syncNavigation();
+    $("#accountRows").addEventListener("click",async event=>{const button=event.target.closest("button[data-action]");if(!button)return;const action=button.dataset.action,id=button.dataset.id;if(action==="delete"&&!confirm("Delete this account and all of its notes permanently?"))return;if(action==="suspend"&&!confirm("Suspend this account?"))return;button.disabled=true;try{if(action==="delete")await api("/api/admin/accounts/"+id,{method:"DELETE",body:"{}"});else if(action==="storage"){const storageQuotaGb=Number(button.closest(".storage-controls").querySelector("input").value);await api("/api/admin/accounts/"+id+"/storage",{method:"PATCH",body:JSON.stringify({storageQuotaGb})})}else if(action==="grant-plus"||action==="revoke-plus"){await api("/api/admin/accounts/"+id+"/plan",{method:"PATCH",body:JSON.stringify({planId:action==="grant-plus"?"plus":null})})}else await api("/api/admin/accounts/"+id,{method:"PATCH",body:JSON.stringify({action})});await load();$("#message").textContent=action==="storage"?"Storage limit updated.":action==="grant-plus"?"Plus access granted.":action==="revoke-plus"?"Admin-granted Plus access revoked.":""}catch(error){$("#message").textContent=error.message;button.disabled=false}});
+    $("#refresh").addEventListener("click",load);
+    $("#billingForm").addEventListener("submit",async event=>{event.preventDefault();const button=$("#saveBilling");button.disabled=true;$("#billingStatus").textContent="Saving billing settings…";try{const settings={name:$("#billingPlanName").value.trim(),storageQuotaGb:Number($("#billingStorageGb").value),monthlyAmount:Number($("#billingMonthly").value),yearlyAmount:Number($("#billingYearly").value),enabled:$("#billingEnabled").checked,features:[...document.querySelectorAll("[name=billingFeature]:checked")].map(input=>input.value)};await api("/api/admin/billing/plan",{method:"PUT",body:JSON.stringify(settings)});billing.loaded=false;await loadBilling();$("#billingStatus").textContent="Plan settings saved."}catch(error){$("#billingStatus").textContent=error.message}finally{button.disabled=false}});
+    initializeRoundedSelects();
+    $("#contentPage").addEventListener("change",event=>{if(cms.dirty&&!confirm("Discard unsaved website text changes?")){setRoundedSelectValue(event.currentTarget,cms.page);return}loadCmsPage(event.currentTarget.dataset.value)});
+    $("#savePageContent").addEventListener("click",saveCmsPage);
+    $("#announcementForm").addEventListener("submit",async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;$("#announcementStatus").textContent="Publishing…";try{const announcement={enabled:$("#announcementEnabled").checked,message:$("#announcementMessage").value.trim(),tone:$("#announcementTone").dataset.value};await api("/api/admin/site-content/announcement",{method:"PUT",body:JSON.stringify(announcement)});window.dispatchEvent(new CustomEvent("mkn:announcement-updated",{detail:announcement}));$("#announcementStatus").textContent="Announcement published.";document.querySelector("#contentFrame").contentWindow?.location.reload()}catch(error){$("#announcementStatus").textContent=error.message}finally{button.disabled=false}});
+    $("#logout").addEventListener("click",async()=>{try{await api("/api/auth/logout",{method:"POST",body:"{}"});location.href="/"}catch(error){$("#message").textContent=error.message}});
+    load();
+  </script>
+</body>
+</html>

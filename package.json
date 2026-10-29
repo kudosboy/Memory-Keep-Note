@@ -4,6 +4,7 @@
   "private": true,
   "description": "Account-backed personal notes",
   "scripts": {
+    "build": "node scripts/build.js",
     "start": "node server.js"
   },
   "engines": {
@@ -18,7 +19,11 @@
     "express-session": "^1.18.1",
     "helmet": "^8.1.0",
     "mongodb": "^6.19.0",
-    "nodemailer": "^10.2.1"
-    ,"sanitize-html": "^2.17.0"
+    "nodemailer": "^10.2.1",
+    "sanitize-html": "^2.17.0",
+    "stripe": "^23.0.1"
+  },
+  "devDependencies": {
+    "terser": "^5.51.2"
   }
 }

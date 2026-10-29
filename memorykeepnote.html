@@ -4,8 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07070f">
-<title>Glass Notes</title>
+<title>Memory Keep Note</title>
+<script>if(window.parent!==window)document.documentElement.classList.add("embedded-notes");</script>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="/manifest.json">
+<script src="/pwa-register.js" defer></script>
+<script src="/password-toggle.js" defer></script>
+<script src="/site-content.js" defer></script>
 <style>
   /* ---------- Base ---------- */
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -89,13 +94,16 @@
     flex: 0 0 310px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     padding: 18px;
     min-height: 0;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
     z-index: 60;
   }
 
   .brand {
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -121,6 +129,7 @@
   }
 
   .new-btn {
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -138,11 +147,12 @@
     box-shadow: 0 8px 24px rgba(139, 123, 255, 0.32);
     transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
   }
-  .new-btn:hover { transform: translateY(-1px); filter: brightness(1.08); box-shadow: 0 12px 30px rgba(139, 123, 255, 0.42); }
+  .new-btn:hover { filter: brightness(1.08); box-shadow: 0 12px 30px rgba(139, 123, 255, 0.42); }
   .new-btn:active { transform: translateY(0) scale(0.985); }
   .new-btn svg { width: 16px; height: 16px; }
 
   .search-wrap {
+    flex: 0 0 auto;
     position: relative;
     display: flex;
     align-items: center;
@@ -169,9 +179,34 @@
   #search::placeholder { color: var(--muted); }
   #search:focus { border-color: rgba(139, 123, 255, 0.55); background: rgba(255, 255, 255, 0.08); }
 
+  .organize-panel { display: grid; flex: 0 0 auto; gap: 10px; }
+  .nav-section { display: grid; gap: 4px; }
+  .nav-heading { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+  .nav-list { display: grid; gap: 2px; }
+  .nav-row { display: flex; align-items: center; gap: 4px; min-width: 0; }
+  .nav-item, .nav-action { min-height: 34px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: inherit; cursor: pointer; }
+  .nav-item { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 6px 9px; text-align: left; font-size: 12px; }
+  .nav-item span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav-item:hover, .nav-action:hover, .nav-item.active { background: var(--item-hover); color: var(--text); }
+  .nav-item.active { box-shadow: inset 0 0 0 1px rgba(139, 123, 255, .36); }
+  .nav-count { margin-left: auto; color: var(--muted); font-size: 10px; }
+  .nav-action { flex: 0 0 30px; width: 30px; font-size: 15px; }
+  .nav-item:focus-visible, .nav-action:focus-visible, .format-btn:focus-visible, .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .organize-panel #viewList { max-height: none; overflow: visible; }
+  .organize-panel .nav-list:not(#viewList) { max-height: 84px; overflow-y: auto; }
+  .inline-form { display:grid; gap:6px; padding:7px; border:1px solid var(--border); border-radius:10px; background:rgba(255,255,255,.04); }
+  .inline-form[hidden] { display:none; }
+  .inline-form label { display:grid; gap:4px; color:var(--muted); font-size:10px; }
+  .inline-form input { width:100%; min-width:0; padding:7px 8px; border:1px solid var(--border); border-radius:7px; background:rgba(255,255,255,.06); color:var(--text); font:inherit; font-size:12px; }
+  .inline-form-actions { display:flex; gap:6px; }
+  .inline-form button { min-height:30px; padding:4px 9px; border:1px solid var(--border); border-radius:7px; background:rgba(255,255,255,.07); color:var(--text); font:inherit; font-size:11px; cursor:pointer; }
+  .inline-form button[type="submit"] { background:rgba(139,123,255,.25); }
+  .org-error { color:#ff9aad; font-size:11px; line-height:1.4; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
   .notes-list {
-    flex: 1;
-    min-height: 0;
+    flex: 1 0 120px;
+    min-height: 120px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -183,8 +218,8 @@
     position: relative;
     width: 100%;
     text-align: left;
-    padding: 11px 13px;
-    border-radius: 14px;
+    padding: 8px 10px;
+    border-radius: 11px;
     border: 1px solid transparent;
     background: var(--item);
     color: inherit;
@@ -192,23 +227,15 @@
     cursor: pointer;
     transition: background 0.18s, border-color 0.18s, transform 0.18s;
   }
-  .note-item:hover { background: var(--item-hover); transform: translateX(2px); }
+  .note-item:hover { background: var(--item-hover); }
   .note-item.active {
-    background: linear-gradient(135deg, rgba(139, 123, 255, 0.24), rgba(255, 95, 168, 0.14));
+    background: rgba(139, 123, 255, 0.16);
     border-color: rgba(139, 123, 255, 0.55);
-    box-shadow: 0 0 22px rgba(139, 123, 255, 0.18);
-  }
-  .note-item.active::before {
-    content: "";
-    position: absolute;
-    left: -1px; top: 22%; bottom: 22%;
-    width: 3px;
-    border-radius: 3px;
-    background: linear-gradient(var(--accent), var(--accent-2));
+    box-shadow: inset 0 0 0 1px rgba(139, 123, 255, .18);
   }
 
   .ni-title {
-    font-size: 13.5px;
+    font-size: 12.5px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -216,7 +243,7 @@
     margin-bottom: 3px;
   }
   .ni-preview {
-    font-size: 11.5px;
+    font-size: 10.5px;
     color: var(--muted);
     white-space: nowrap;
     overflow: hidden;
@@ -224,7 +251,7 @@
     margin-bottom: 5px;
   }
   .ni-date {
-    font-size: 10.5px;
+    font-size: 9.5px;
     color: rgba(242, 243, 255, 0.36);
     letter-spacing: 0.3px;
   }
@@ -235,6 +262,21 @@
     color: var(--muted);
     padding: 26px 10px;
   }
+  .notes-heading { display:flex; align-items:center; justify-content:space-between; flex:0 0 auto; padding:2px 4px 0; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; }
+  .notes-heading-count { color:var(--muted); font-size:10px; font-weight:500; letter-spacing:0; }
+  .storage-meter { display:grid; gap:5px; flex:0 0 auto; padding:8px 10px; border:1px solid rgba(255,255,255,.09); border-radius:10px; background:rgba(255,255,255,.035); }
+  .storage-meter-label { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--muted); font-size:10px; }
+  .storage-meter-label strong { color:var(--text); font-size:10px; font-weight:600; }
+  .storage-meter-track { height:4px; overflow:hidden; border-radius:999px; background:rgba(255,255,255,.10); }
+  .storage-meter-fill { width:0; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent),var(--accent-2)); transition:width .2s ease; }
+  .billing-card { display:grid; gap:7px; flex:0 0 auto; padding:9px 10px; border:1px solid rgba(163,151,255,.24); border-radius:11px; background:rgba(163,151,255,.07); }
+  .billing-card strong { font-size:11px; }
+  .billing-card p { margin:0; color:var(--muted); font-size:10px; line-height:1.4; }
+  .billing-actions { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .billing-actions button { min-height:30px; padding:5px 7px; border:1px solid rgba(163,151,255,.35); border-radius:8px; background:rgba(163,151,255,.12); color:var(--text); font:inherit; font-size:10px; cursor:pointer; }
+  .billing-actions button:hover:not(:disabled) { background:rgba(163,151,255,.22); }
+  .billing-actions button:disabled { opacity:.55; cursor:wait; }
+  .sidebar-footer { position:sticky; bottom:-18px; z-index:2; display:grid; flex:0 0 auto; gap:7px; margin-top:auto; padding:8px 0 0; background:linear-gradient(180deg,rgba(16,16,32,0),rgba(16,16,32,.98) 24%); }
 
   /* ---------- Editor ---------- */
   .editor {
@@ -244,6 +286,7 @@
     padding: 20px 24px 16px;
     min-width: 0;
     min-height: 0;
+    transition: background 0.2s ease;
   }
 
   .editor-head {
@@ -295,6 +338,7 @@
   .body-input {
     flex: 1;
     min-height: 0;
+    min-width: 0;
     width: 100%;
     margin-top: 14px;
     padding: 4px 2px;
@@ -306,12 +350,79 @@
     font: inherit;
     font-size: 15.5px;
     line-height: 1.78;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    overscroll-behavior: contain;
   }
   .body-input::placeholder { color: rgba(242, 243, 255, 0.28); }
   .body-input[contenteditable="true"]:empty::before { content: attr(data-placeholder); color: rgba(242,243,255,.28); pointer-events: none; }
+  .body-input img { display:block; max-width:100%; max-height:min(560px,70vh); height:auto; margin:12px 0; border-radius:12px; object-fit:contain; }
+  .body-input h1,.body-input h2,.body-input h3 { margin:.75em 0 .35em; line-height:1.3; }
+  .body-input h1 { font-size:1.8em; }
+  .body-input h2 { font-size:1.45em; }
+  .body-input h3 { font-size:1.2em; }
+  .body-input blockquote { margin:.75em 0; padding-left:14px; border-left:3px solid var(--accent); color:var(--muted); }
+  .body-input pre { overflow-x:auto; margin:.75em 0; padding:12px; border:1px solid var(--border); border-radius:10px; background:rgba(0,0,0,.24); font:13px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace; }
+  .body-input ul,.body-input ol { padding-left:1.6em; }
+  .body-input table { width:100%; margin:12px 0; border-collapse:collapse; }
+  .body-input td,.body-input th { min-width:90px; padding:8px; border:1px solid var(--border); vertical-align:top; }
   .format-bar { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
   .format-btn { min-width:34px; height:32px; padding:0 8px; border:1px solid rgba(255,255,255,.12); border-radius:9px; background:rgba(255,255,255,.05); color:var(--text); cursor:pointer; font:inherit; font-size:12px; }
   .format-btn:hover,.format-btn:focus-visible { background:rgba(139,123,255,.25); outline:none; }
+  .note-tools { display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin-top:9px; }
+  .note-tool, .folder-select { min-height:34px; padding:6px 9px; border:1px solid rgba(255,255,255,.12); border-radius:9px; background:rgba(255,255,255,.05); color:var(--text); font:inherit; font-size:11px; }
+  .note-tool { cursor:pointer; }
+  .note-tool:hover:not(:disabled) { background:rgba(139,123,255,.2); }
+  .note-tool:disabled, .folder-select:disabled { opacity:.4; cursor:not-allowed; }
+  .folder-select { max-width:min(100%, 220px); }
+  .color-picker-wrap { display:inline-flex; align-items:center; gap:7px; min-height:34px; padding:4px 8px; border:1px solid rgba(255,255,255,.12); border-radius:9px; background:rgba(255,255,255,.05); color:var(--text); font-size:11px; }
+  .color-menu-trigger { display:inline-flex; align-items:center; gap:6px; min-height:27px; padding:3px 7px; border:1px solid var(--border); border-radius:8px; background:rgba(255,255,255,.06); color:var(--text); font:inherit; cursor:pointer; }
+  .color-menu-trigger:hover:not(:disabled), .color-menu-trigger[aria-expanded="true"] { background:rgba(255,255,255,.13); }
+  .color-menu-trigger:focus-visible, .color-choice:focus-visible, .color-custom:focus-within { outline:2px solid var(--accent); outline-offset:2px; }
+  .color-menu-trigger:disabled { opacity:.4; cursor:not-allowed; }
+  .color-swatch { width:17px; height:17px; flex:0 0 auto; border:1px solid rgba(255,255,255,.45); border-radius:5px; background:var(--selected-color, #181824); }
+  .color-palette { flex:1 0 100%; display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:10px; border:1px solid var(--border); border-radius:13px; background:rgba(16,16,32,.94); }
+  .color-palette[hidden] { display:none; }
+  .color-palette-title { flex-basis:100%; color:var(--muted); font-size:11px; }
+  .color-choice { display:grid; place-items:center; width:30px; height:30px; padding:3px; border:1px solid transparent; border-radius:9px; background:transparent; cursor:pointer; }
+  .color-choice[aria-pressed="true"] { border-color:var(--accent); background:rgba(139,123,255,.18); }
+  .color-choice .color-swatch { width:20px; height:20px; border-radius:6px; }
+  .color-custom { display:inline-flex; align-items:center; gap:7px; min-height:30px; padding:3px 8px; border:1px solid var(--border); border-radius:9px; color:var(--text); font-size:11px; cursor:pointer; }
+  .color-custom:hover { background:rgba(255,255,255,.1); }
+  .color-custom:focus-within { outline:2px solid var(--accent); outline-offset:2px; }
+  .color-custom input { width:27px; height:27px; padding:2px; border:1px solid var(--border); border-radius:7px; background:rgba(0,0,0,.2); cursor:pointer; }
+  .color-custom input::-webkit-color-swatch-wrapper { padding:1px; }
+  .color-custom input::-webkit-color-swatch { border:1px solid rgba(255,255,255,.4); border-radius:4px; }
+  .color-help { flex-basis:100%; color:var(--muted); font-size:10px; }
+  .share-panel { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px; border:1px solid var(--border); border-radius:12px; background:rgba(16,16,32,.72); }
+  .share-panel[hidden] { display:none; }
+  .share-panel input { flex:1 1 220px; min-width:0; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:rgba(255,255,255,.06); color:var(--text); font:inherit; font-size:11px; }
+  .share-error { flex-basis:100%; color:#ff9aad; font-size:11px; }
+  .share-error[hidden] { display:none; }
+  .note-attachments { display:grid; gap:8px; margin:4px 0 12px; }
+  .attachment-item { display:flex; align-items:center; flex-wrap:wrap; gap:9px; padding:9px 11px; border:1px solid var(--border); border-radius:12px; background:rgba(255,255,255,.035); }
+  .attachment-name { flex:1 1 160px; min-width:0; overflow-wrap:anywhere; color:var(--text); font-size:12px; }
+  .attachment-meta { color:var(--muted); font-size:10px; }
+  .attachment-action { border:0; padding:4px 7px; border-radius:8px; background:rgba(255,255,255,.07); color:var(--text); font:inherit; font-size:11px; text-decoration:none; cursor:pointer; }
+  .attachment-action:hover { background:rgba(139,123,255,.2); }
+  .attachment-player { flex-basis:100%; width:min(100%,520px); }
+  .attachment-error { margin:0; padding:8px 10px; border:1px solid rgba(255,154,173,.22); border-radius:10px; background:rgba(255,154,173,.07); color:var(--muted); font-size:11px; }
+  .dropdown { position:relative; min-width:0; }
+  .dropdown-trigger { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; min-height:38px; padding:8px 11px; border:1px solid rgba(255,255,255,.13); border-radius:12px; background:rgba(255,255,255,.055); color:var(--text); font:inherit; font-size:12px; text-align:left; cursor:pointer; }
+  .dropdown-trigger:hover, .dropdown-trigger[aria-expanded="true"] { border-color:rgba(139,123,255,.52); background:rgba(255,255,255,.09); }
+  .dropdown-trigger:disabled { opacity:.4; cursor:not-allowed; }
+  .dropdown-trigger:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .dropdown-value { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dropdown-chevron { width:14px; height:14px; flex:0 0 auto; transition:transform .16s ease; }
+  .dropdown-trigger[aria-expanded="true"] .dropdown-chevron { transform:rotate(180deg); }
+  .dropdown-menu { position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:80; display:grid; gap:3px; max-height:220px; overflow-y:auto; padding:5px; border:1px solid rgba(255,255,255,.16); border-radius:13px; background:#171728; box-shadow:0 12px 32px rgba(0,0,0,.4); }
+  .dropdown-menu[hidden] { display:none; }
+  .dropdown-option { width:100%; min-height:34px; padding:7px 9px; border:0; border-radius:8px; background:transparent; color:var(--text); font:inherit; font-size:12px; text-align:left; cursor:pointer; }
+  .dropdown-option:hover, .dropdown-option:focus-visible { outline:none; background:rgba(255,255,255,.09); }
+  .dropdown-option[aria-selected="true"] { background:rgba(139,123,255,.2); color:#e4e0ff; }
+  .nav-section > .dropdown { width:100%; }
+  #folderDropdown { width:min(190px, 100%); }
   .note-meta { display:flex; gap:7px; flex-wrap:wrap; margin:0 0 8px; }
   .note-tag { border:0; border-radius:999px; padding:4px 8px; background:rgba(139,123,255,.17); color:#d8d3ff; font-size:11px; cursor:pointer; }
 
@@ -392,11 +503,34 @@
     .editor { padding: 16px 16px 12px; border-radius: 20px; }
     .title-input { font-size: 18px; }
     .body-input { font-size: 15px; }
+    .sidebar { gap:9px; }
+    .organize-panel { gap:8px; }
+    .nav-section { min-width:0; }
+    .organize-panel .nav-list:not(#viewList) { max-height:68px; }
+    .notes-list { flex-basis:110px; min-height:110px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
     .blob { animation: none; }
     * { transition-duration: 0.01ms !important; }
+  }
+
+  html.embedded-notes, html.embedded-notes body { height:auto; min-height:0; }
+  html.embedded-notes body { overflow:visible; }
+  html.embedded-notes .app { height:auto; min-height:0; max-width:none; align-items:stretch; }
+  html.embedded-notes .sidebar { height:auto; max-height:none; overflow:visible; }
+  html.embedded-notes .sidebar-footer { position:static; bottom:auto; margin-top:0; }
+  html.embedded-notes .notes-list { flex:0 0 auto; min-height:0; overflow:visible; }
+  html.embedded-notes .organize-panel .nav-list:not(#viewList) { max-height:none; overflow:visible; }
+  html.embedded-notes .editor { width:0; flex:1 1 0; min-height:320px; }
+  html.embedded-notes .body-input { flex:0 0 auto; min-height:320px; overflow:visible; }
+  html.embedded-notes .scrim { display:none; }
+
+  @media (max-width: 860px) {
+    html.embedded-notes .app { flex-direction:column; }
+    html.embedded-notes .sidebar { position:static; inset:auto; width:auto; max-height:none; flex:0 0 auto; transform:none; transition:none; box-shadow:none; }
+    html.embedded-notes .sidebar.open { transform:none; }
+    html.embedded-notes .editor { width:100%; flex:0 0 auto; min-height:320px; }
   }
 </style>
 </head>
@@ -414,7 +548,7 @@
     <div class="brand">
       <div class="logo"><img src="/favicon.svg" alt="" width="42" height="42"></div>
       <div>
-        <h1>Glass Notes</h1>
+        <h1>Memory Keep Note</h1>
         <p id="noteCount">0 notes</p>
       </div>
     </div>
@@ -433,9 +567,58 @@
       <input id="search" type="text" placeholder="Search notes…" autocomplete="off">
     </div>
 
+    <div class="organize-panel">
+      <section class="nav-section" aria-label="Smart folders">
+        <div class="nav-heading">Views</div>
+        <div class="nav-list" id="viewList">
+          <button class="nav-item active" type="button" data-view="all"><span>All Notes</span><span class="nav-count" id="allCount">0</span></button>
+          <button class="nav-item" type="button" data-view="pinned"><span>Pinned</span><span class="nav-count" id="pinnedCount">0</span></button>
+          <button class="nav-item" type="button" data-view="recent"><span>Recently Edited</span><span class="nav-count" id="recentCount">0</span></button>
+          <button class="nav-item" type="button" data-view="archived"><span>Archived</span><span class="nav-count" id="archivedCount">0</span></button>
+          <button class="nav-item" type="button" data-view="trash"><span>Recently Deleted</span><span class="nav-count" id="trashCount">0</span></button>
+        </div>
+        <div class="dropdown" id="sortDropdown">
+          <button class="dropdown-trigger" type="button" aria-label="Sort notes" aria-haspopup="listbox" aria-expanded="false">
+            <span class="dropdown-value"></span>
+            <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="dropdown-menu" role="listbox" aria-label="Sort notes" hidden></div>
+        </div>
+      </section>
+      <section class="nav-section" aria-label="Folders">
+        <div class="nav-heading"><span>Folders</span><button class="nav-action" id="addFolderBtn" type="button" aria-label="Create folder" title="Create folder">+</button></div>
+        <form class="inline-form" id="folderForm" hidden>
+          <label for="folderName">New folder name<input id="folderName" maxlength="60" required autocomplete="off"></label>
+          <div class="inline-form-actions"><button type="submit">Create folder</button><button type="button" id="cancelFolderBtn">Cancel</button></div>
+        </form>
+        <div class="nav-list" id="folderList"></div>
+      </section>
+      <section class="nav-section" aria-label="Tags">
+        <div class="nav-heading">Tags</div>
+        <div class="nav-list" id="tagList"></div>
+      </section>
+      <p class="org-error" id="orgError" role="alert" hidden></p>
+    </div>
+
+    <div class="notes-heading"><span>Notes</span><span class="notes-heading-count" id="visibleNoteCount">0</span></div>
     <div class="notes-list" id="notesList"></div>
-    <a class="account-btn" href="/" aria-label="Back to website">← Back to website</a>
-    <button class="account-btn" id="accountBtn" type="button" title="Account options">Account</button>
+    <div class="storage-meter" id="storageMeter" aria-label="Account storage usage" hidden>
+      <div class="storage-meter-label"><span>Storage</span><strong id="storageLabel">—</strong></div>
+      <div class="storage-meter-track" id="storageTrack" role="progressbar" aria-label="Storage used" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="storage-meter-fill" id="storageFill"></div></div>
+    </div>
+    <section class="billing-card" id="billingCard" aria-label="Subscription plan" hidden>
+      <strong id="billingPlanLabel">Plan</strong>
+      <p id="billingPlanMessage" role="status">Checking plan status…</p>
+      <div class="billing-actions">
+        <button id="billingMonthlyBtn" type="button" hidden>Monthly</button>
+        <button id="billingYearlyBtn" type="button" hidden>Annual</button>
+        <button id="billingManageBtn" type="button" hidden>Manage plan</button>
+      </div>
+    </section>
+    <div class="sidebar-footer">
+      <a class="account-btn" href="/" target="_top" aria-label="Back to website">← Back to website</a>
+      <button class="account-btn" id="accountBtn" type="button" title="Account options">Account</button>
+    </div>
   </aside>
 
   <div class="scrim" id="scrim"></div>
@@ -452,6 +635,7 @@
       <input class="title-input" id="titleInput" type="text" placeholder="Untitled note" maxlength="120" autocomplete="off">
 
       <div class="head-actions">
+        <button class="icon-btn" id="duplicateBtn" type="button" title="Duplicate note" aria-label="Duplicate note" disabled>⧉</button>
         <button class="icon-btn" id="downloadBtn" title="Download as .txt" aria-label="Download note">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/>
@@ -466,9 +650,64 @@
     </div>
 
     <div class="format-bar" role="toolbar" aria-label="Text formatting">
-      <button class="format-btn" type="button" data-format="bold" aria-label="Bold"><b>B</b></button><button class="format-btn" type="button" data-format="italic" aria-label="Italic"><i>I</i></button><button class="format-btn" type="button" data-format="underline" aria-label="Underline"><u>U</u></button><button class="format-btn" type="button" data-format="insertUnorderedList" aria-label="Bulleted list">• List</button><button class="format-btn" type="button" data-format="insertOrderedList" aria-label="Numbered list">1. List</button><button class="format-btn" type="button" data-format="removeFormat" aria-label="Clear formatting">Clear</button>
+      <button class="format-btn" type="button" data-format="bold" aria-label="Bold"><b>B</b></button><button class="format-btn" type="button" data-format="italic" aria-label="Italic"><i>I</i></button><button class="format-btn" type="button" data-format="underline" aria-label="Underline"><u>U</u></button><button class="format-btn" type="button" data-format="strikeThrough" aria-label="Strikethrough"><s>S</s></button><button class="format-btn" type="button" data-format="formatBlock" data-value="h1" aria-label="Title">Title</button><button class="format-btn" type="button" data-format="formatBlock" data-value="h2" aria-label="Heading">H2</button><button class="format-btn" type="button" data-format="formatBlock" data-value="h3" aria-label="Subheading">H3</button><button class="format-btn" type="button" data-format="formatBlock" data-value="p" aria-label="Paragraph">¶</button><button class="format-btn" type="button" data-format="formatBlock" data-value="blockquote" aria-label="Quote">Quote</button><button class="format-btn" type="button" data-format="formatBlock" data-value="pre" aria-label="Code block">Code</button><button class="format-btn" type="button" data-format="insertUnorderedList" aria-label="Bulleted list">• List</button><button class="format-btn" type="button" data-format="insertOrderedList" aria-label="Numbered list">1. List</button><button class="format-btn" type="button" id="checklistBtn" aria-label="Insert checklist">☑ Checklist</button><button class="format-btn" type="button" data-format="indent" aria-label="Indent">→</button><button class="format-btn" type="button" data-format="outdent" aria-label="Outdent">←</button><button class="format-btn" type="button" id="tableBtn" aria-label="Insert table">Table</button><button class="format-btn" type="button" data-format="undo" aria-label="Undo">↶</button><button class="format-btn" type="button" data-format="redo" aria-label="Redo">↷</button><button class="format-btn" id="linkBtn" type="button" aria-label="Insert link">Link</button><button class="format-btn" type="button" data-format="removeFormat" aria-label="Clear formatting">Clear</button>
     </div>
+    <div class="note-tools" aria-label="Note organization">
+      <button class="note-tool" id="pinBtn" type="button" disabled>Pin</button>
+      <button class="note-tool" id="archiveBtn" type="button" disabled>Archive</button>
+      <button class="note-tool" id="tagBtn" type="button" disabled>Edit tags</button>
+      <button class="note-tool" id="shareBtn" type="button" disabled aria-expanded="false">Share</button>
+      <div class="color-picker-wrap">
+        <span>Board</span>
+        <button class="color-menu-trigger" id="colorMenuBtn" type="button" aria-label="Choose note board color" aria-expanded="false" aria-controls="colorPalette" disabled>
+          <span class="color-swatch" id="colorSwatch" aria-hidden="true"></span>
+          <span>Color</span>
+        </button>
+      </div>
+      <div class="color-palette" id="colorPalette" role="group" aria-label="Note board colors" hidden>
+        <span class="color-palette-title">Choose a board color</span>
+        <button class="color-choice" type="button" data-color="#181824" aria-label="Default" title="Default" aria-pressed="false"><span class="color-swatch" style="--selected-color:#181824"></span></button>
+        <button class="color-choice" type="button" data-color="#4855b1" aria-label="Indigo" title="Indigo" aria-pressed="false"><span class="color-swatch" style="--selected-color:#4855b1"></span></button>
+        <button class="color-choice" type="button" data-color="#7257d5" aria-label="Violet" title="Violet" aria-pressed="false"><span class="color-swatch" style="--selected-color:#7257d5"></span></button>
+        <button class="color-choice" type="button" data-color="#b94a7c" aria-label="Rose" title="Rose" aria-pressed="false"><span class="color-swatch" style="--selected-color:#b94a7c"></span></button>
+        <button class="color-choice" type="button" data-color="#3176a8" aria-label="Blue" title="Blue" aria-pressed="false"><span class="color-swatch" style="--selected-color:#3176a8"></span></button>
+        <button class="color-choice" type="button" data-color="#2d847a" aria-label="Teal" title="Teal" aria-pressed="false"><span class="color-swatch" style="--selected-color:#2d847a"></span></button>
+        <button class="color-choice" type="button" data-color="#5f8c56" aria-label="Green" title="Green" aria-pressed="false"><span class="color-swatch" style="--selected-color:#5f8c56"></span></button>
+        <button class="color-choice" type="button" data-color="#ba6f38" aria-label="Orange" title="Orange" aria-pressed="false"><span class="color-swatch" style="--selected-color:#ba6f38"></span></button>
+        <button class="color-choice" type="button" data-color="#a28635" aria-label="Gold" title="Gold" aria-pressed="false"><span class="color-swatch" style="--selected-color:#a28635"></span></button>
+        <label class="color-custom" for="noteColor">
+          <span>More colors</span>
+          <input id="noteColor" type="color" value="#181824" aria-label="Choose any custom board color visually" disabled>
+        </label>
+        <span class="color-help">Pick a color visually—no color code needed.</span>
+      </div>
+      <button class="note-tool" id="imageBtn" type="button" disabled>Insert picture</button>
+      <input id="imageInput" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+      <button class="note-tool" id="attachmentBtn" type="button" disabled>Attach file</button>
+      <input id="attachmentInput" type="file" accept=".pdf,.txt,.csv,.webm,.mp4,.m4a,.mp3,application/pdf,text/plain,text/csv,audio/webm,audio/mp4,audio/mpeg" hidden>
+      <div class="dropdown" id="folderDropdown">
+        <button class="dropdown-trigger" type="button" aria-label="Move note to folder" aria-haspopup="listbox" aria-expanded="false" disabled>
+          <span class="dropdown-value">All Notes</span>
+          <svg class="dropdown-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="dropdown-menu" role="listbox" aria-label="Move note to folder" hidden></div>
+      </div>
+      <button class="note-tool" id="restoreBtn" type="button" hidden>Restore</button>
+    </div>
+    <div class="share-panel" id="sharePanel" hidden>
+      <input id="shareUrl" type="url" aria-label="Read-only share link" readonly>
+      <button class="note-tool" id="copyShareBtn" type="button">Copy link</button>
+      <button class="note-tool" id="createShareBtn" type="button">Create link</button>
+      <button class="note-tool" id="revokeShareBtn" type="button">Turn off sharing</button>
+      <p class="share-error" id="shareError" role="alert" hidden></p>
+    </div>
+    <form class="inline-form tag-form" id="tagForm" hidden>
+      <label for="tagInput">Tags (comma-separated, up to 12)<input id="tagInput" maxlength="400" autocomplete="off"></label>
+      <div class="inline-form-actions"><button type="submit">Save tags</button><button type="button" id="cancelTagBtn">Cancel</button></div>
+    </form>
+    <p class="org-error" id="tagError" role="alert" hidden></p>
     <div class="note-meta" id="noteTags"></div>
+    <div class="note-attachments" id="attachmentList" aria-label="Note attachments" hidden></div>
     <div class="body-input" id="bodyInput" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Start writing…" spellcheck="true"></div>
 
     <div class="status">
@@ -508,6 +747,7 @@
   const $ = (sel) => document.querySelector(sel);
   const els = {
     sidebar:    $("#sidebar"),
+    editor:     $(".editor"),
     notesList:  $("#notesList"),
     search:     $("#search"),
     newBtn:     $("#newBtn"),
@@ -521,13 +761,63 @@
     noteCount:  $("#noteCount"),
     downloadBtn:$("#downloadBtn"),
     deleteBtn:  $("#deleteBtn"),
+    duplicateBtn: $("#duplicateBtn"),
+    pinBtn: $("#pinBtn"),
+    archiveBtn: $("#archiveBtn"),
+    tagBtn: $("#tagBtn"),
+    folderDropdown: $("#folderDropdown"),
+    sortDropdown: $("#sortDropdown"),
+    visibleNoteCount: $("#visibleNoteCount"),
+    restoreBtn: $("#restoreBtn"),
+    viewList: $("#viewList"),
+    folderList: $("#folderList"),
+    tagList: $("#tagList"),
+    addFolderBtn: $("#addFolderBtn"),
+    folderForm: $("#folderForm"),
+    folderName: $("#folderName"),
+    cancelFolderBtn: $("#cancelFolderBtn"),
+    orgError: $("#orgError"),
+    tagForm: $("#tagForm"),
+    tagInput: $("#tagInput"),
+    cancelTagBtn: $("#cancelTagBtn"),
+    tagError: $("#tagError"),
+    shareBtn: $("#shareBtn"),
+    sharePanel: $("#sharePanel"),
+    shareUrl: $("#shareUrl"),
+    copyShareBtn: $("#copyShareBtn"),
+    createShareBtn: $("#createShareBtn"),
+    revokeShareBtn: $("#revokeShareBtn"),
+    shareError: $("#shareError"),
+    noteColor: $("#noteColor"),
+    colorMenuBtn: $("#colorMenuBtn"),
+    colorPalette: $("#colorPalette"),
+    colorSwatch: $("#colorSwatch"),
+    imageBtn: $("#imageBtn"),
+    imageInput: $("#imageInput"),
+    attachmentBtn: $("#attachmentBtn"),
+    attachmentInput: $("#attachmentInput"),
+    attachmentList: $("#attachmentList"),
+    storageMeter: $("#storageMeter"),
+    storageLabel: $("#storageLabel"),
+    storageFill: $("#storageFill"),
+    storageTrack: $("#storageTrack"),
+    linkBtn: $("#linkBtn"),
+    checklistBtn: $("#checklistBtn"),
+    tableBtn: $("#tableBtn"),
   };
 
   let notes = [];
+  let folders = [];
+  let paidFeatures = new Set();
   let activeId = null;
   let query = "";
+  let currentView = "all";
+  let folderFilter = null;
+  let tagFilter = null;
+  let sortBy = "updated";
   let saveTimer = null;
   let stateTimer = null;
+  let savedEditorRange = null;
 
   /* ---------------- Helpers ---------------- */
 
@@ -536,6 +826,153 @@
   const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
   })[character]);
+
+  function safeNoteContent(markup) {
+    const documentCopy = new DOMParser().parseFromString(`<body>${markup}</body>`, "text/html");
+    const allowed = new Set(["P", "BR", "STRONG", "B", "EM", "I", "U", "S", "STRIKE", "H1", "H2", "H3", "BLOCKQUOTE", "PRE", "CODE", "UL", "OL", "LI", "A", "IMG", "TABLE", "THEAD", "TBODY", "TR", "TH", "TD", "INPUT"]);
+    function clean(parent) {
+      [...parent.childNodes].forEach(node => {
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        if (!allowed.has(node.tagName)) {
+          if (["SCRIPT", "STYLE", "IFRAME", "OBJECT", "SVG", "MATH"].includes(node.tagName)) node.remove();
+          else node.replaceWith(...node.childNodes);
+          return;
+        }
+        if (node.tagName === "IMG") {
+          const src = node.getAttribute("src") || "";
+          if (!/^\/api\/note-images\/[a-f0-9]{24}$/i.test(src)) {
+            node.remove();
+            return;
+          }
+          if (node.tagName === "INPUT") {
+            if (node.getAttribute("type") !== "checkbox") {
+              node.remove();
+              return;
+            }
+            const checked = node.checked || node.hasAttribute("checked");
+            [...node.attributes].forEach(attribute => node.removeAttribute(attribute.name));
+            node.setAttribute("type", "checkbox");
+            if (checked) node.setAttribute("checked", "");
+            node.addEventListener("change", onEdit);
+            return;
+          }
+          const alt = (node.getAttribute("alt") || "").slice(0, 200);
+          [...node.attributes].forEach(attribute => node.removeAttribute(attribute.name));
+          node.setAttribute("src", src);
+          node.setAttribute("alt", alt);
+          return;
+        }
+        if (node.tagName === "INPUT") {
+          if (node.getAttribute("type") !== "checkbox") {
+            node.remove();
+            return;
+          }
+          const checked = node.checked || node.hasAttribute("checked");
+          [...node.attributes].forEach(attribute => node.removeAttribute(attribute.name));
+          node.setAttribute("type", "checkbox");
+          if (checked) node.setAttribute("checked", "");
+          return;
+        }
+        if (node.tagName === "A") {
+          const href = node.getAttribute("href") || "";
+          try {
+            const parsed = new URL(href, location.origin);
+            if (!["http:", "https:", "mailto:"].includes(parsed.protocol)) node.removeAttribute("href");
+            else node.setAttribute("href", parsed.href);
+          } catch { node.removeAttribute("href"); }
+          [...node.attributes].forEach(attribute => {
+            if (!["href", "target", "rel"].includes(attribute.name.toLowerCase())) node.removeAttribute(attribute.name);
+          });
+          node.setAttribute("rel", "noopener noreferrer");
+        } else {
+          [...node.attributes].forEach(attribute => node.removeAttribute(attribute.name));
+        }
+        clean(node);
+      });
+    }
+    clean(documentCopy.body);
+    return documentCopy.body.innerHTML;
+  }
+
+  function noteImageIds(markup) {
+    const parsed = new DOMParser().parseFromString(`<body>${markup}</body>`, "text/html");
+    return [...parsed.querySelectorAll("img")]
+      .map(image => /^\/api\/note-images\/([a-f0-9]{24})$/i.exec(image.getAttribute("src") || "")?.[1])
+      .filter(Boolean);
+  }
+
+  function renderDropdown(element, options, selected, onSelect) {
+    const trigger = element.querySelector(".dropdown-trigger");
+    const menu = element.querySelector(".dropdown-menu");
+    const selectedOption = options.find((option) => option.value === selected) || options[0];
+    trigger.querySelector(".dropdown-value").textContent = selectedOption.label;
+    menu.replaceChildren();
+    options.forEach((option) => {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "dropdown-option";
+      item.setAttribute("role", "option");
+      item.setAttribute("aria-selected", String(option.value === selected));
+      item.textContent = option.label;
+      item.addEventListener("click", () => {
+        closeDropdown(element);
+        trigger.querySelector(".dropdown-value").textContent = option.label;
+        menu.querySelectorAll("[role=\"option\"]").forEach((menuItem) => {
+          menuItem.setAttribute("aria-selected", String(menuItem === item));
+        });
+        onSelect(option.value);
+      });
+      menu.appendChild(item);
+    });
+  }
+
+  function closeDropdown(element, restoreFocus = false) {
+    const trigger = element.querySelector(".dropdown-trigger");
+    const menu = element.querySelector(".dropdown-menu");
+    menu.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+    if (restoreFocus) trigger.focus();
+  }
+
+  function openDropdown(element) {
+    document.querySelectorAll(".dropdown").forEach((dropdown) => closeDropdown(dropdown));
+    const trigger = element.querySelector(".dropdown-trigger");
+    const menu = element.querySelector(".dropdown-menu");
+    if (trigger.disabled) return;
+    menu.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+    menu.querySelector(".dropdown-option[aria-selected=\"true\"]")?.focus();
+  }
+
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".dropdown")) document.querySelectorAll(".dropdown").forEach((dropdown) => closeDropdown(dropdown));
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const open = document.querySelector(".dropdown-trigger[aria-expanded=\"true\"]");
+    if (open) closeDropdown(open.closest(".dropdown"), true);
+  });
+  document.querySelectorAll(".dropdown").forEach((dropdown) => {
+    const trigger = dropdown.querySelector(".dropdown-trigger");
+    trigger.addEventListener("click", () => {
+      if (trigger.getAttribute("aria-expanded") === "true") closeDropdown(dropdown);
+      else openDropdown(dropdown);
+    });
+    trigger.addEventListener("keydown", (event) => {
+      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        event.preventDefault();
+        openDropdown(dropdown);
+      }
+    });
+    dropdown.querySelector(".dropdown-menu").addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      event.preventDefault();
+      const options = [...dropdown.querySelectorAll(".dropdown-option")];
+      const current = options.indexOf(document.activeElement);
+      const offset = event.key === "ArrowDown" ? 1 : -1;
+      options[(current + offset + options.length) % options.length]?.focus();
+    });
+  });
 
   function timeAgo(ts) {
     const diff = Date.now() - ts;
@@ -552,6 +989,302 @@
 
   function activeNote() {
     return notes.find((n) => n.id === activeId) || null;
+  }
+
+  function colorTint(color, alpha = 0.22) {
+    if (!/^#[0-9a-f]{6}$/i.test(color || "")) return "";
+    const red = parseInt(color.slice(1, 3), 16);
+    const green = parseInt(color.slice(3, 5), 16);
+    const blue = parseInt(color.slice(5, 7), 16);
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+  }
+
+  function formatBytes(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    const units = ["KB", "MB", "GB", "TB"];
+    let value = bytes / 1024;
+    let unit = 0;
+    while (value >= 1024 && unit < units.length - 1) {
+      value /= 1024;
+      unit += 1;
+    }
+    return `${Math.abs(value - Math.round(value)) < 0.05 ? Math.round(value) : value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${units[unit]}`;
+  }
+
+  function renderStorage(storage) {
+    if (!storage) return;
+    els.storageMeter.hidden = false;
+    if (storage.unlimited || !storage.limitBytes) {
+      els.storageLabel.textContent = `${formatBytes(storage.usedBytes)} · Unlimited`;
+      els.storageTrack.hidden = true;
+      return;
+    }
+    const percent = Math.min(100, storage.usedBytes / storage.limitBytes * 100);
+    els.storageLabel.textContent = `${formatBytes(storage.usedBytes)} of ${formatBytes(storage.limitBytes)}`;
+    els.storageFill.style.width = `${percent}%`;
+    els.storageTrack.setAttribute("aria-valuenow", String(Math.round(percent)));
+    els.storageTrack.setAttribute("aria-valuetext", `${formatBytes(storage.usedBytes)} of ${formatBytes(storage.limitBytes)}`);
+    els.storageTrack.hidden = false;
+  }
+  window.addEventListener("mkn:storage-updated", (event) => renderStorage(event.detail));
+  window.addEventListener("mkn:storage-error", () => {
+    els.storageMeter.hidden = false;
+    els.storageLabel.textContent = "Usage unavailable";
+    els.storageTrack.hidden = true;
+  });
+
+  function applyNoteColor(note) {
+    els.editor.style.background = note?.color
+      ? `linear-gradient(${colorTint(note.color, 0.28)}, ${colorTint(note.color, 0.28)}), var(--panel)`
+      : "";
+    els.noteColor.value = /^#[0-9a-f]{6}$/i.test(note?.color || "") ? note.color : "#181824";
+  }
+
+  async function uploadNoteImage(noteId, file) {
+    const response = await fetch("/api/notes/" + encodeURIComponent(noteId) + "/images", {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream", "X-Image-Type": file.type },
+      body: file
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || "The picture could not be uploaded.");
+    return result;
+  }
+
+  async function request(url, options = {}) {
+    const response = await fetch(url, { ...options, headers: { "Content-Type": "application/json", ...(options.headers || {}) } });
+    const result = response.status === 204 ? null : await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result?.error || "Request failed. Please try again.");
+    return result;
+  }
+
+  function renderAttachments(attachments, error = "") {
+    els.attachmentList.replaceChildren();
+    els.attachmentList.hidden = !error && !attachments.length;
+    if (error) {
+      const message = document.createElement("p");
+      message.className = "attachment-error";
+      message.setAttribute("role", "alert");
+      message.textContent = error;
+      els.attachmentList.appendChild(message);
+      return;
+    }
+    attachments.forEach((attachment) => {
+      const noteId = activeNote()?.id;
+      const item = document.createElement("div");
+      item.className = "attachment-item";
+      const name = document.createElement("span");
+      name.className = "attachment-name";
+      name.textContent = attachment.fileName;
+      const meta = document.createElement("span");
+      meta.className = "attachment-meta";
+      meta.textContent = `${attachment.contentType} · ${formatBytes(attachment.size)}`;
+      const preview = document.createElement("a");
+      preview.className = "attachment-action";
+      preview.href = attachment.previewUrl;
+      preview.target = "_blank";
+      preview.rel = "noopener noreferrer";
+      preview.textContent = "Preview";
+      preview.setAttribute("aria-label", `Preview ${attachment.fileName}`);
+      const download = document.createElement("a");
+      download.className = "attachment-action";
+      download.href = attachment.downloadUrl;
+      download.textContent = "Download";
+      download.setAttribute("aria-label", `Download ${attachment.fileName}`);
+      item.append(name, meta, preview, download);
+      if (attachment.contentType.startsWith("audio/")) {
+        const player = document.createElement("audio");
+        player.className = "attachment-player";
+        player.controls = true;
+        player.preload = "none";
+        player.src = attachment.previewUrl;
+        player.setAttribute("aria-label", `Play ${attachment.fileName}`);
+        item.appendChild(player);
+      }
+      if (!activeNote()?.deletedAt) {
+        const remove = document.createElement("button");
+        remove.className = "attachment-action";
+        remove.type = "button";
+        remove.textContent = "Remove";
+        remove.setAttribute("aria-label", `Remove ${attachment.fileName}`);
+        remove.addEventListener("click", async () => {
+          const note = activeNote();
+          if (!note || note.id !== noteId) return;
+          remove.disabled = true;
+          try {
+            const result = await request(`/api/notes/${encodeURIComponent(noteId)}/attachments/${encodeURIComponent(attachment.id)}`, { method: "DELETE", body: "{}" });
+            if (result?.storage) renderStorage(result.storage);
+            await refreshAttachments(noteId);
+          } catch (error) {
+            remove.disabled = false;
+            renderAttachments(attachments, error.message);
+          }
+        });
+        item.appendChild(remove);
+      }
+      els.attachmentList.appendChild(item);
+    });
+  }
+
+  async function refreshAttachments(noteId) {
+    const note = activeNote();
+    if (!noteId || !note || note.id !== noteId || note.deletedAt) {
+      renderAttachments([]);
+      return;
+    }
+    try {
+      const { attachments } = await request(`/api/notes/${encodeURIComponent(noteId)}/attachments`);
+      if (activeNote()?.id === noteId) renderAttachments(attachments);
+    } catch (error) {
+      if (activeNote()?.id === noteId) {
+        if (error.message === "Note not found.") renderAttachments([]);
+        else renderAttachments([], `Attachments are temporarily unavailable: ${error.message}`);
+      }
+    }
+  }
+
+  async function flushNoteSync() {
+    const note = activeNote();
+    if (!note || note.deletedAt) throw new Error("Select an active note first.");
+    note.title = els.titleInput.value;
+    note.content = els.bodyInput.innerHTML;
+    note.body = els.bodyInput.textContent || "";
+    note.attachments = [...new Set(noteImageIds(note.content))];
+    clearTimeout(saveTimer);
+    persist();
+    const result = await request("/api/notes/sync", { method: "POST", body: JSON.stringify({ notes }) });
+    if (result?.storage) renderStorage(result.storage);
+    renderList();
+    updateStatus();
+  }
+
+  function visibleInView(note) {
+    if (currentView === "trash") return !!note.deletedAt;
+    if (note.deletedAt) return false;
+    if (currentView === "archived") return !!note.isArchived;
+    if (note.isArchived) return false;
+    if (currentView === "pinned" && !note.isPinned) return false;
+    if (currentView === "recent" && note.updated < Date.now() - 7 * 86400000) return false;
+    if (currentView === "folder" && note.folderId !== folderFilter) return false;
+    if (tagFilter && !(note.tags || []).includes(tagFilter)) return false;
+    return true;
+  }
+
+  function setView(view, folderId = null, tag = null) {
+    currentView = view;
+    folderFilter = folderId;
+    tagFilter = tag;
+    els.viewList.querySelectorAll("[data-view]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.view === view && !tag);
+    });
+    els.folderList.querySelectorAll("[data-folder-id]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.folderId === folderId && view === "folder");
+    });
+    els.tagList.querySelectorAll("[data-tag]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.tag === tag);
+    });
+    renderList();
+  }
+
+  function updateOrganization() {
+    const liveNotes = notes.filter((note) => !note.deletedAt);
+    const count = (predicate) => notes.filter(predicate).length;
+    $("#allCount").textContent = count((note) => !note.deletedAt && !note.isArchived);
+    $("#pinnedCount").textContent = count((note) => !note.deletedAt && !note.isArchived && note.isPinned);
+    $("#recentCount").textContent = count((note) => !note.deletedAt && !note.isArchived && note.updated >= Date.now() - 7 * 86400000);
+    $("#archivedCount").textContent = count((note) => !note.deletedAt && note.isArchived);
+    $("#trashCount").textContent = count((note) => !!note.deletedAt);
+
+    els.folderList.replaceChildren();
+    folders.forEach((folder) => {
+      const row = document.createElement("div");
+      row.className = "nav-row";
+      const open = document.createElement("button");
+      open.type = "button";
+      open.className = "nav-item";
+      open.dataset.folderId = folder.id;
+      open.dataset.folderAction = "open";
+      open.innerHTML = `<span aria-hidden="true">▰</span><span>${escapeHtml(folder.name)}</span><span class="nav-count">${count((note) => !note.deletedAt && !note.isArchived && note.folderId === folder.id)}</span>`;
+      open.classList.toggle("active", currentView === "folder" && folderFilter === folder.id);
+      const rename = document.createElement("button");
+      rename.type = "button";
+      rename.className = "nav-action";
+      rename.dataset.folderId = folder.id;
+      rename.dataset.folderAction = "rename";
+      rename.setAttribute("aria-label", `Rename ${folder.name}`);
+      rename.title = "Rename folder";
+      rename.textContent = "…";
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "nav-action";
+      remove.dataset.folderId = folder.id;
+      remove.dataset.folderAction = "delete";
+      remove.setAttribute("aria-label", `Delete ${folder.name}`);
+      remove.title = "Delete folder";
+      remove.textContent = "×";
+      const editForm = document.createElement("form");
+      editForm.className = "inline-form";
+      editForm.hidden = true;
+      const label = document.createElement("label");
+      label.textContent = "Folder name";
+      const input = document.createElement("input");
+      input.value = folder.name;
+      input.maxLength = 60;
+      input.required = true;
+      label.appendChild(input);
+      const actions = document.createElement("div");
+      actions.className = "inline-form-actions";
+      const save = document.createElement("button");
+      save.type = "submit";
+      save.textContent = "Save";
+      const cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.textContent = "Cancel";
+      cancel.addEventListener("click", () => { editForm.hidden = true; open.hidden = false; });
+      actions.append(save, cancel);
+      editForm.append(label, actions);
+      editForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const name = input.value.trim();
+        if (!/^[\p{L}\p{N}][\p{L}\p{N} _-]{0,59}$/u.test(name)) {
+          els.orgError.textContent = "Folder names must be 1 to 60 letters, numbers, spaces, underscores, or hyphens.";
+          els.orgError.hidden = false;
+          return;
+        }
+        requestFolderAction("rename", folder.id, name);
+        editForm.hidden = true;
+        open.hidden = false;
+      });
+      row.append(open, rename, remove, editForm);
+      els.folderList.appendChild(row);
+    });
+
+    const tagCounts = new Map();
+    liveNotes.forEach((note) => (note.tags || []).forEach((tag) => tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)));
+    els.tagList.replaceChildren();
+    [...tagCounts].sort(([a], [b]) => a.localeCompare(b)).forEach(([tag, total]) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "nav-item";
+      button.dataset.tag = tag;
+      button.innerHTML = `<span aria-hidden="true">#</span><span>${escapeHtml(tag)}</span><span class="nav-count">${total}</span>`;
+      button.classList.toggle("active", tagFilter === tag);
+      els.tagList.appendChild(button);
+    });
+
+    const selected = activeNote();
+    const folderOptions = [{ value: "", label: "All Notes" }, ...folders.map((folder) => ({ value: folder.id, label: folder.name }))];
+    renderDropdown(els.folderDropdown, folderOptions, selected && selected.folderId || "", (folderId) => {
+      const note = activeNote();
+      if (!note || note.deletedAt) return;
+      note.folderId = folderId || null;
+      note.updated = Date.now();
+      persist();
+      renderList();
+      updateStatus();
+      setSaveState("Moved");
+    });
+    els.noteCount.textContent = liveNotes.length + (liveNotes.length === 1 ? " note" : " notes");
   }
 
   /* ---------------- Storage ---------------- */
@@ -595,27 +1328,31 @@
 
     els.wordCount.textContent = words + (words === 1 ? " word" : " words");
     els.updatedAt.textContent = note ? "Edited " + timeAgo(note.updated) : "—";
-    els.noteCount.textContent = notes.length + (notes.length === 1 ? " note" : " notes");
+    updateOrganization();
   }
 
   function renderList() {
     const q = query.trim().toLowerCase();
     const visible = notes
-      .filter((n) => {
-        if (!q) return true;
-        return (
+      .filter((n) => visibleInView(n) && (
+        !q ||
+        (
           (n.title || "").toLowerCase().includes(q) ||
-          (n.body || "").toLowerCase().includes(q)
-        );
-      })
-      .sort((a, b) => b.updated - a.updated);
+          (n.body || "").toLowerCase().includes(q) ||
+          (n.tags || []).some((tag) => tag.includes(q))
+        )
+      ))
+      .sort((a, b) => sortBy === "title"
+        ? (a.title || "").localeCompare(b.title || "")
+        : sortBy === "created" ? b.created - a.created : b.updated - a.updated);
 
+    els.visibleNoteCount.textContent = String(visible.length);
     els.notesList.innerHTML = "";
 
     if (!visible.length) {
       const empty = document.createElement("div");
       empty.className = "empty-list";
-      empty.textContent = q ? "No notes match your search" : "No notes yet. Tap “New note”.";
+      empty.textContent = q ? "No notes match your search" : currentView === "trash" ? "Recently deleted notes will appear here." : tagFilter ? `No notes tagged “${tagFilter}”.` : "No notes in this view yet.";
       els.notesList.appendChild(empty);
       return;
     }
@@ -627,10 +1364,11 @@
       item.type = "button";
       item.className = "note-item" + (n.id === activeId ? " active" : "");
       item.dataset.id = n.id;
+      if (n.color) item.style.backgroundColor = colorTint(n.color, n.id === activeId ? 0.25 : 0.14);
 
       const title = document.createElement("div");
       title.className = "ni-title";
-      title.textContent = (n.title || "").trim() || "Untitled note";
+      title.textContent = (n.isPinned ? "📌 " : "") + ((n.title || "").trim() || "Untitled note");
 
       const preview = document.createElement("div");
       preview.className = "ni-preview";
@@ -639,26 +1377,60 @@
 
       const date = document.createElement("div");
       date.className = "ni-date";
-      date.textContent = timeAgo(n.updated);
+      date.textContent = n.deletedAt ? "Deleted " + timeAgo(n.deletedAt) : timeAgo(n.updated);
 
       item.append(title, preview, date);
+      if (n.tags && n.tags.length) {
+        const tags = document.createElement("div");
+        tags.className = "ni-date";
+        tags.textContent = n.tags.map((tag) => "#" + tag).join("  ");
+        item.appendChild(tags);
+      }
       frag.appendChild(item);
     });
 
     els.notesList.appendChild(frag);
+    updateOrganization();
   }
 
   function loadActiveIntoEditor() {
     const note = activeNote();
     const has = !!note;
+    const trashed = has && !!note.deletedAt;
 
-    els.titleInput.disabled = !has;
-    els.bodyInput.contentEditable = has ? "true" : "false";
+    els.titleInput.disabled = !has || trashed;
+    els.bodyInput.contentEditable = has && !trashed ? "true" : "false";
     els.downloadBtn.disabled = !has;
     els.deleteBtn.disabled = !has;
+    els.duplicateBtn.disabled = !has || trashed;
+    els.pinBtn.disabled = !has || trashed;
+    els.archiveBtn.disabled = !has || trashed;
+    els.tagBtn.disabled = !has || trashed;
+    els.shareBtn.disabled = !has || trashed || !paidFeatures.has("sharing");
+    const canChangeColor = has && !trashed && paidFeatures.has("themes");
+    els.noteColor.disabled = !canChangeColor;
+    els.colorMenuBtn.disabled = !canChangeColor;
+    els.imageBtn.disabled = !has || trashed || !paidFeatures.has("attachments");
+    els.attachmentBtn.disabled = !has || trashed || !paidFeatures.has("attachments");
+    if(!paidFeatures.has("sharing"))els.shareBtn.title="Plus feature · upgrade to share notes";else els.shareBtn.removeAttribute("title");
+    if(!paidFeatures.has("themes"))els.noteColor.title="Plus feature · upgrade for custom colors";else els.noteColor.removeAttribute("title");
+    if(!paidFeatures.has("attachments")){els.imageBtn.title="Plus feature · upgrade to add pictures";els.attachmentBtn.title="Plus feature · upgrade to attach files"}else{els.imageBtn.removeAttribute("title");els.attachmentBtn.removeAttribute("title")}
+    els.folderDropdown.querySelector(".dropdown-trigger").disabled = !has || trashed;
+    els.restoreBtn.hidden = !trashed;
+    els.deleteBtn.title = trashed ? "Delete permanently" : "Move to Recently Deleted";
+    els.deleteBtn.setAttribute("aria-label", els.deleteBtn.title);
+    els.pinBtn.textContent = has && note.isPinned ? "Unpin" : "Pin";
+    els.archiveBtn.textContent = has && note.isArchived ? "Unarchive" : "Archive";
 
     els.titleInput.value = has ? note.title : "";
-    els.bodyInput.innerHTML = has ? (note.content || escapeHtml(note.body || "")) : "";
+    updateColorSwatch(els.noteColor.value);
+    els.bodyInput.innerHTML = has ? safeNoteContent(note.content || escapeHtml(note.body || "")) : "";
+    renderAttachments([]);
+    if (has && !trashed) void refreshAttachments(note.id);
+    applyNoteColor(note);
+    els.sharePanel.hidden = true;
+    els.shareBtn.setAttribute("aria-expanded", "false");
+    els.shareUrl.value = "";
 
     els.titleInput.placeholder = has ? "Untitled note" : "No note selected";
     els.bodyInput.dataset.placeholder = has
@@ -676,8 +1448,9 @@
   }
 
   function createNote() {
+    if (currentView === "trash" || currentView === "archived" || currentView === "pinned") setView("all");
     const now = Date.now();
-    const note = { id: uid(), title: "", body: "", content: "", tags: [], isPinned: false, isArchived: false, folderId: null, created: now, updated: now, version: 1 };
+    const note = { id: uid(), title: "", body: "", content: "", tags: tagFilter ? [tagFilter] : [], isPinned: false, isArchived: false, folderId: currentView === "folder" ? folderFilter : null, created: now, updated: now, version: 1 };
     notes.push(note);
     persist();
 
@@ -697,17 +1470,91 @@
     if (!note) return;
 
     const label = (note.title || "").trim() || "this note";
-    if (!confirm(`Delete “${label}”? This cannot be undone.`)) return;
-
-    notes = notes.filter((n) => n.id !== activeId);
+    if (note.deletedAt) {
+      if (!confirm(`Permanently delete “${label}”? This cannot be undone.`)) return;
+      notes = notes.filter((n) => n.id !== activeId);
+      setSaveState("Deleted permanently");
+    } else {
+      if (!confirm(`Move “${label}” to Recently Deleted? You can restore it later.`)) return;
+      note.deletedAt = Date.now();
+      setSaveState("Moved to Recently Deleted");
+    }
     persist();
 
-    const remaining = notes.slice().sort((a, b) => b.updated - a.updated);
+    const remaining = notes.filter((item) => visibleInView(item)).sort((a, b) => b.updated - a.updated);
     activeId = remaining.length ? remaining[0].id : null;
 
     loadActiveIntoEditor();
     renderList();
-    setSaveState("Deleted");
+  }
+
+  function restoreActiveNote() {
+    const note = activeNote();
+    if (!note || !note.deletedAt) return;
+    delete note.deletedAt;
+    note.updated = Date.now();
+    persist();
+    currentView = "all";
+    activeId = note.id;
+    loadActiveIntoEditor();
+    renderList();
+    setSaveState("Restored");
+  }
+
+  function duplicateActiveNote() {
+    const note = activeNote();
+    if (!note || note.deletedAt) return;
+    const copy = { ...note, id: uid(), title: (note.title || "Untitled note") + " copy", tags: [...(note.tags || [])], attachments: [...(note.attachments || [])], created: Date.now(), updated: Date.now(), isPinned: false, deletedAt: null, version: 1 };
+    notes.push(copy);
+    activeId = copy.id;
+    persist();
+    loadActiveIntoEditor();
+    renderList();
+    setSaveState("Note duplicated");
+  }
+
+  function editTags() {
+    const note = activeNote();
+    if (!note || note.deletedAt) return;
+    els.tagError.textContent = "";
+    els.tagError.hidden = true;
+    els.tagInput.value = (note.tags || []).join(", ");
+    els.tagForm.hidden = !els.tagForm.hidden;
+    if (!els.tagForm.hidden) els.tagInput.focus();
+  }
+
+  function saveTags(event) {
+    event.preventDefault();
+    const note = activeNote();
+    if (!note || note.deletedAt) return;
+    const tags = [...new Set(els.tagInput.value.split(",").map((tag) => tag.trim().toLowerCase()).filter(Boolean))];
+    if (tags.length > 12 || tags.some((tag) => !/^[\p{L}\p{N}][\p{L}\p{N} _-]{0,31}$/u.test(tag))) {
+      els.tagError.textContent = "Tags must be 1 to 32 letters, numbers, spaces, underscores, or hyphens; use no more than 12 tags.";
+      els.tagError.hidden = false;
+      return;
+    }
+    note.tags = tags;
+    note.updated = Date.now();
+    persist();
+    els.tagForm.hidden = true;
+    renderList();
+    updateStatus();
+    setSaveState("Tags saved");
+  }
+
+  function toggleNoteProperty(property, enabledText, disabledText) {
+    const note = activeNote();
+    if (!note || note.deletedAt) return;
+    note[property] = !note[property];
+    note.updated = Date.now();
+    persist();
+    loadActiveIntoEditor();
+    renderList();
+    setSaveState(note[property] ? enabledText : disabledText);
+  }
+
+  function requestFolderAction(action, folderId, name) {
+    window.dispatchEvent(new CustomEvent("mkn:folder-action", { detail: { action, folderId, name } }));
   }
 
   function downloadActiveNote() {
@@ -744,6 +1591,7 @@
     note.title = els.titleInput.value;
     note.content = els.bodyInput.innerHTML;
     note.body = els.bodyInput.textContent || "";
+    note.attachments = [...new Set(noteImageIds(note.content))];
     note.version = (note.version || 0) + 1;
     note.updated = Date.now();
 
@@ -775,17 +1623,332 @@
   /* ---------------- Events ---------------- */
 
   els.newBtn.addEventListener("click", createNote);
+  window.addEventListener("mkn:billing-updated", (event) => {
+    paidFeatures = new Set(event.detail?.features || []);
+    loadActiveIntoEditor();
+  });
   els.deleteBtn.addEventListener("click", deleteActiveNote);
   els.downloadBtn.addEventListener("click", downloadActiveNote);
+  els.duplicateBtn.addEventListener("click", duplicateActiveNote);
+  els.restoreBtn.addEventListener("click", restoreActiveNote);
+  els.pinBtn.addEventListener("click", () => toggleNoteProperty("isPinned", "Pinned", "Unpinned"));
+  els.archiveBtn.addEventListener("click", () => toggleNoteProperty("isArchived", "Archived", "Unarchived"));
+  els.tagBtn.addEventListener("click", editTags);
+  els.shareBtn.addEventListener("click", async () => {
+    const note = activeNote();
+    if (!note || note.deletedAt) return;
+    els.sharePanel.hidden = !els.sharePanel.hidden;
+    els.shareBtn.setAttribute("aria-expanded", String(!els.sharePanel.hidden));
+    els.shareError.hidden = true;
+    if (els.sharePanel.hidden) return;
+    try {
+      await flushNoteSync();
+      const { shared, url } = await request("/api/notes/" + encodeURIComponent(note.id) + "/share");
+      if (activeId !== note.id) return;
+      els.shareUrl.value = shared ? url : "";
+      els.createShareBtn.textContent = shared ? "Copy link" : "Create link";
+      els.createShareBtn.hidden = shared;
+      els.copyShareBtn.hidden = !shared;
+      els.revokeShareBtn.hidden = !shared;
+    } catch (error) {
+      els.shareError.textContent = error.message;
+      els.shareError.hidden = false;
+    }
+  });
+  els.createShareBtn.addEventListener("click", async () => {
+    const note = activeNote();
+    if (!note || note.deletedAt) return;
+    try {
+      const { url } = await request("/api/notes/" + encodeURIComponent(note.id) + "/share", { method: "POST", body: "{}" });
+      if (activeId !== note.id) return;
+      els.shareUrl.value = url;
+      els.createShareBtn.hidden = true;
+      els.copyShareBtn.hidden = false;
+      els.revokeShareBtn.hidden = false;
+      setSaveState("Read-only link ready");
+    } catch (error) {
+      els.shareError.textContent = error.message;
+      els.shareError.hidden = false;
+    }
+  });
+  els.copyShareBtn.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(els.shareUrl.value);
+      setSaveState("Share link copied");
+    } catch (error) {
+      els.shareUrl.select();
+      els.shareError.textContent = "Copy was blocked by the browser. Select the link above and copy it.";
+      els.shareError.hidden = false;
+    }
+  });
+  els.revokeShareBtn.addEventListener("click", async () => {
+    const note = activeNote();
+    if (!note || !confirm("Turn off sharing? Anyone using the current link will lose access.")) return;
+    try {
+      await request("/api/notes/" + encodeURIComponent(note.id) + "/share", { method: "DELETE", body: "{}" });
+      els.shareUrl.value = "";
+      els.copyShareBtn.hidden = true;
+      els.revokeShareBtn.hidden = true;
+      els.createShareBtn.hidden = false;
+      els.createShareBtn.textContent = "Create link";
+      setSaveState("Sharing turned off");
+    } catch (error) {
+      els.shareError.textContent = error.message;
+      els.shareError.hidden = false;
+    }
+  });
+  function updateColorSwatch(color) {
+    els.colorSwatch.style.setProperty("--selected-color", color);
+    els.colorPalette.querySelectorAll(".color-choice").forEach((choice) => {
+      choice.setAttribute("aria-pressed", String(choice.dataset.color === color.toLowerCase()));
+    });
+  }
+
+  function closeColorPalette() {
+    els.colorPalette.hidden = true;
+    els.colorMenuBtn.setAttribute("aria-expanded", "false");
+  }
+
+  function saveNoteColor(color) {
+    const note = activeNote();
+    if (!note || note.deletedAt || !/^#[0-9a-f]{6}$/i.test(color)) return;
+    note.color = color.toLowerCase();
+    els.noteColor.value = note.color;
+    updateColorSwatch(note.color);
+    applyNoteColor(note);
+    onEdit();
+  }
+
+  els.colorMenuBtn.addEventListener("click", () => {
+    const open = els.colorPalette.hidden;
+    els.colorPalette.hidden = !open;
+    els.colorMenuBtn.setAttribute("aria-expanded", String(open));
+  });
+  els.colorPalette.querySelectorAll(".color-choice").forEach((choice) => {
+    choice.addEventListener("click", () => {
+      saveNoteColor(choice.dataset.color);
+      closeColorPalette();
+      els.colorMenuBtn.focus();
+    });
+  });
+  els.noteColor.addEventListener("change", () => {
+    saveNoteColor(els.noteColor.value);
+    closeColorPalette();
+    els.colorMenuBtn.focus();
+  });
+  document.addEventListener("click", (event) => {
+    if (!els.colorPalette.hidden && !event.target.closest("#colorPalette, #colorMenuBtn")) closeColorPalette();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !els.colorPalette.hidden) {
+      closeColorPalette();
+      els.colorMenuBtn.focus();
+    }
+  });
+  els.imageBtn.addEventListener("click", () => {
+    const selection = window.getSelection();
+    savedEditorRange = selection && selection.rangeCount ? selection.getRangeAt(0).cloneRange() : null;
+    els.imageInput.click();
+  });
+  els.imageInput.addEventListener("change", async () => {
+    const file = els.imageInput.files?.[0];
+    const note = activeNote();
+    els.imageInput.value = "";
+    if (!file || !note || note.deletedAt) return;
+    if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      alert("Choose a PNG, JPEG, WebP, or GIF image up to 5 MB.");
+      return;
+    }
+    try {
+      setSaveState("Uploading picture…", true);
+      await flushNoteSync();
+      const result = await uploadNoteImage(note.id, file);
+      if (activeId !== note.id) throw new Error("The picture uploaded, but the selected note changed. Reopen the original note to insert it.");
+      note.attachments = [...new Set([...(note.attachments || []), result.id])];
+      const image = document.createElement("img");
+      image.src = result.url;
+      image.alt = file.name.slice(0, 200);
+      const selection = window.getSelection();
+      if (savedEditorRange && els.bodyInput.contains(savedEditorRange.commonAncestorContainer)) {
+        selection.removeAllRanges();
+        selection.addRange(savedEditorRange);
+      } else {
+        els.bodyInput.focus();
+        const range = document.createRange();
+        range.selectNodeContents(els.bodyInput);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(image);
+      range.setStartAfter(image);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      els.bodyInput.focus();
+      onEdit();
+    } catch (error) {
+      els.saveState.textContent = error.message;
+      els.saveState.classList.remove("saving");
+    }
+  });
+  els.attachmentBtn.addEventListener("click", () => els.attachmentInput.click());
+  els.attachmentInput.addEventListener("change", async () => {
+    const file = els.attachmentInput.files?.[0];
+    const note = activeNote();
+    els.attachmentInput.value = "";
+    if (!file || !note || note.deletedAt) return;
+    const extension = file.name.toLowerCase().slice(file.name.lastIndexOf("."));
+    const fileTypes = { ".pdf": "application/pdf", ".txt": "text/plain", ".csv": "text/csv", ".webm": "audio/webm", ".mp4": "audio/mp4", ".m4a": "audio/mp4", ".mp3": "audio/mpeg" };
+    const contentType = fileTypes[extension];
+    if (!contentType || file.size > 20 * 1024 * 1024) {
+      alert("Choose a PDF, TXT, CSV, WebM, MP4/M4A, or MP3 file up to 20 MB.");
+      return;
+    }
+    try {
+      setSaveState("Uploading attachment…", true);
+      await flushNoteSync();
+      const response = await fetch(`/api/notes/${encodeURIComponent(note.id)}/attachments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/octet-stream", "X-File-Type": contentType, "X-File-Name": encodeURIComponent(file.name) },
+        body: file
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || "The attachment could not be uploaded.");
+      if (result?.storage) renderStorage(result.storage);
+      if (activeNote()?.id === note.id) await refreshAttachments(note.id);
+      setSaveState("Attachment added");
+    } catch (error) {
+      els.saveState.textContent = error.message;
+      els.saveState.classList.remove("saving");
+    }
+  });
+  els.addFolderBtn.addEventListener("click", () => {
+    els.orgError.textContent = "";
+    els.orgError.hidden = true;
+    els.folderForm.hidden = false;
+    els.folderName.focus();
+  });
+  els.folderForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const name = els.folderName.value.trim();
+    if (!/^[\p{L}\p{N}][\p{L}\p{N} _-]{0,59}$/u.test(name)) {
+      els.orgError.textContent = "Folder names must be 1 to 60 letters, numbers, spaces, underscores, or hyphens.";
+      els.orgError.hidden = false;
+      return;
+    }
+    requestFolderAction("create", null, name);
+    els.folderName.value = "";
+    els.folderForm.hidden = true;
+  });
+  els.cancelFolderBtn.addEventListener("click", () => { els.folderForm.hidden = true; els.folderName.value = ""; });
+  els.tagForm.addEventListener("submit", saveTags);
+  els.cancelTagBtn.addEventListener("click", () => { els.tagForm.hidden = true; els.tagError.hidden = true; });
+  els.folderList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-folder-action]");
+    if (!button) return;
+    const folder = folders.find((item) => item.id === button.dataset.folderId);
+    if (!folder) return;
+    const action = button.dataset.folderAction;
+    if (action === "open") {
+      setView("folder", folder.id);
+      return;
+    }
+    if (action === "rename") {
+      const row = button.closest(".nav-row");
+      const form = row.querySelector("form");
+      button.closest(".nav-row").querySelector(".nav-item").hidden = true;
+      form.hidden = false;
+      form.querySelector("input").focus();
+      return;
+    }
+    if (action === "delete" && confirm(`Delete folder “${folder.name}”? Its notes will be moved to All Notes.`)) {
+      requestFolderAction("delete", folder.id);
+    }
+  });
+  els.viewList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-view]");
+    if (button) setView(button.dataset.view);
+  });
+  els.tagList.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-tag]");
+    if (button) setView("all", null, button.dataset.tag);
+  });
+  renderDropdown(els.sortDropdown, [
+    { value: "updated", label: "Sort: Recently Edited" },
+    { value: "created", label: "Sort: Date Created" },
+    { value: "title", label: "Sort: Title" },
+  ], sortBy, (value) => { sortBy = value; renderList(); });
+  window.addEventListener("mkn:folders-updated", (event) => {
+    folders = Array.isArray(event.detail) ? event.detail : [];
+    els.orgError.textContent = "";
+    els.orgError.hidden = true;
+    if (currentView === "folder" && !folders.some((folder) => folder.id === folderFilter)) {
+      setView("all");
+      return;
+    }
+    updateOrganization();
+    renderList();
+  });
+  window.addEventListener("mkn:folder-deleted", (event) => {
+    notes.forEach((note) => { if (note.folderId === event.detail) note.folderId = null; });
+    persist();
+    renderList();
+    updateStatus();
+  });
+  window.addEventListener("mkn:folder-action-error", (event) => {
+    els.orgError.textContent = event.detail || "The folder could not be updated. Please try again.";
+    els.orgError.hidden = false;
+  });
 
   els.titleInput.addEventListener("input", onEdit);
   els.bodyInput.addEventListener("input", onEdit);
   document.querySelectorAll("[data-format]").forEach((button) => {
+    button.addEventListener("pointerdown", (event) => event.preventDefault());
     button.addEventListener("click", () => {
       els.bodyInput.focus();
-      document.execCommand(button.dataset.format, false, button.dataset.value || null);
+      const command = button.dataset.format;
+      const value = command === "formatBlock" ? `<${button.dataset.value}>` : button.dataset.value || null;
+      document.execCommand(command, false, value);
       onEdit();
     });
+  });
+  els.linkBtn.addEventListener("pointerdown", (event) => event.preventDefault());
+  els.linkBtn.addEventListener("click", () => {
+    const href = prompt("Enter a web or email link:");
+    if (!href) return;
+    let safeHref;
+    try {
+      const parsed = new URL(href, location.origin);
+      if (!["http:", "https:", "mailto:"].includes(parsed.protocol)) throw new Error();
+      safeHref = parsed.href;
+    } catch {
+      alert("Enter a valid http, https, or mailto link.");
+      return;
+    }
+    els.bodyInput.focus();
+    document.execCommand("createLink", false, safeHref);
+    onEdit();
+  });
+  els.checklistBtn.addEventListener("pointerdown", (event) => event.preventDefault());
+  els.checklistBtn.addEventListener("click", () => {
+    els.bodyInput.focus();
+    document.execCommand("insertHTML", false, "<ul><li><input type=\"checkbox\"> </li></ul><p><br></p>");
+    onEdit();
+  });
+  els.tableBtn.addEventListener("pointerdown", (event) => event.preventDefault());
+  els.tableBtn.addEventListener("click", () => {
+    els.bodyInput.focus();
+    document.execCommand("insertHTML", false, "<table><tbody><tr><td><br></td><td><br></td></tr><tr><td><br></td><td><br></td></tr></tbody></table><p><br></p>");
+    onEdit();
+  });
+  els.bodyInput.addEventListener("change", (event) => {
+    if (event.target.matches("input[type=checkbox]")) {
+      event.target.toggleAttribute("checked", event.target.checked);
+      onEdit();
+    }
   });
 
   els.search.addEventListener("input", (e) => {
@@ -853,7 +2016,7 @@
         id: uid(),
         title: "Welcome ✦",
         body:
-          "Hey! This is your glassy notepad.\n\n" +
+          "Welcome to Memory Keep Note.\n\n" +
           "• Everything saves automatically as you type\n" +
           "• Hit “New note” to start another page\n" +
           "• Use the search box to find old notes\n" +
@@ -887,6 +2050,7 @@
   let mode = "login";
   let hydrating = false;
   let syncTimer = null;
+  let billingStatus = null;
   const nativeSetItem = Storage.prototype.setItem;
 
   function setGateReady() {
@@ -904,13 +2068,42 @@
     return body;
   }
 
+  async function refreshBillingStatus(showMessage = "") {
+    const card=$("#billingCard"),planLabel=$("#billingPlanLabel"),message=$("#billingPlanMessage"),monthly=$("#billingMonthlyBtn"),yearly=$("#billingYearlyBtn"),manage=$("#billingManageBtn");
+    try {
+      billingStatus=await request("/api/billing/status");
+      window.dispatchEvent(new CustomEvent("mkn:billing-updated",{detail:billingStatus}));
+      card.hidden=false;
+      planLabel.textContent=billingStatus.planName+" plan";
+      const active=["active","trialing","admin","admin-granted"].includes(billingStatus.subscriptionStatus);
+      if(showMessage)message.textContent=showMessage;
+      else if(billingStatus.subscriptionStatus==="admin")message.textContent="Administrator access · all features included.";
+      else if(billingStatus.subscriptionStatus==="admin-granted")message.textContent="Plus access was granted by the administrator.";
+      else if(active)message.textContent="Paid access is active"+(billingStatus.currentPeriodEnd?" through "+new Date(billingStatus.currentPeriodEnd).toLocaleDateString():"")+".";
+      else message.textContent=billingStatus.planName==="Plus"?"Plus access is active.":"Free plan · 1 GB included.";
+      const offer=billingStatus.offer,hasPlus=billingStatus.planId==="plus"||billingStatus.planId==="admin";
+      monthly.hidden=yearly.hidden=true;
+      manage.hidden=!billingStatus.canManageSubscription;
+      if(offer&&!hasPlus){monthly.hidden=yearly.hidden=false;monthly.textContent="Monthly · $"+offer.monthlyAmount;yearly.textContent="Yearly · $"+offer.yearlyAmount;monthly.disabled=yearly.disabled=!billingStatus.stripeConfigured;if(!billingStatus.stripeConfigured)message.textContent="Payments are being configured. Please check back later."}
+    } catch(error) {
+      card.hidden=false;planLabel.textContent="Plan status unavailable";message.textContent=error.message;monthly.hidden=yearly.hidden=manage.hidden=true;
+    }
+  }
+
+  async function startCheckout(interval,button) {
+    button.disabled=true;$("#billingPlanMessage").textContent="Opening secure Stripe Checkout…";
+    try {const result=await request("/api/billing/checkout",{method:"POST",body:JSON.stringify({interval})});location.assign(result.url)}
+    catch(error){$("#billingPlanMessage").textContent=error.message;button.disabled=false}
+  }
+
   function queueSync(raw) {
     if (!user || hydrating) return;
     clearTimeout(syncTimer);
     syncTimer = setTimeout(async () => {
       try {
         const notes = JSON.parse(raw);
-        await request("/api/notes/sync", { method: "POST", body: JSON.stringify({ notes }) });
+        const result = await request("/api/notes/sync", { method: "POST", body: JSON.stringify({ notes }) });
+        if (result?.storage) window.dispatchEvent(new CustomEvent("mkn:storage-updated", { detail: result.storage }));
       } catch (error) {
         const state = $("#saveState");
         if (state) state.textContent = "Could not sync. Retrying.";
@@ -926,22 +2119,57 @@
   async function hydrate(account) {
     user = account;
     const activeAccount = localStorage.getItem(ACTIVE_ACCOUNT_KEY);
+    if (activeAccount === user.id) setGateReady();
+    const folderResponse = await request("/api/folders");
+    window.dispatchEvent(new CustomEvent("mkn:folders-updated", { detail: folderResponse.folders }));
     if (activeAccount !== user.id) {
       hydrating = true;
       try {
         const remote = await request("/api/notes");
+        window.dispatchEvent(new CustomEvent("mkn:storage-updated", { detail: remote.storage }));
         // Import device-only notes only on the very first account setup. A later
         // account must never inherit cached notes from someone else's session.
         const local = activeAccount ? [] : JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
         const notes = remote.notes.length ? remote.notes : local;
         nativeSetItem.call(localStorage, STORAGE_KEY, JSON.stringify(notes));
         nativeSetItem.call(localStorage, ACTIVE_ACCOUNT_KEY, user.id);
-        if (!remote.notes.length && notes.length) await request("/api/notes/sync", { method: "POST", body: JSON.stringify({ notes }) });
+        if (!remote.notes.length && notes.length) {
+          const result = await request("/api/notes/sync", { method: "POST", body: JSON.stringify({ notes }) });
+          if (result?.storage) window.dispatchEvent(new CustomEvent("mkn:storage-updated", { detail: result.storage }));
+        }
       } finally { hydrating = false; }
       location.reload();
       return;
     }
+    try {
+      window.dispatchEvent(new CustomEvent("mkn:storage-updated", { detail: await request("/api/storage") }));
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent("mkn:storage-error"));
+      throw error;
+    }
     setGateReady();
+    const billingReturn=new URLSearchParams(location.search).get("billing");
+    await refreshBillingStatus(billingReturn==="success"?"Payment received. Confirming your subscription…":billingReturn==="cancelled"?"Checkout cancelled; no payment was made.":"");
+    if(billingReturn==="success"){
+      for(let attempt=0;attempt<5&&!["active","trialing"].includes(billingStatus?.subscriptionStatus);attempt++){await new Promise(resolve=>setTimeout(resolve,2000));await refreshBillingStatus("Payment received. Confirming your subscription…")}
+      if(["active","trialing"].includes(billingStatus?.subscriptionStatus))await refreshBillingStatus("Your Plus subscription is active.");
+    }
+    if(billingReturn){const returnUrl=new URL(location.href);returnUrl.searchParams.delete("billing");history.replaceState(null,"",returnUrl)}
+  }
+
+  function showHydrationError(error) {
+    if (user && localStorage.getItem(ACTIVE_ACCOUNT_KEY) === user.id) {
+      setGateReady();
+      const state = $("#saveState");
+      if (state) {
+        state.textContent = "Signed in · Sync unavailable";
+        state.title = error.message;
+      }
+      console.error("Could not finish loading account data.", error);
+      return;
+    }
+    $("#authError").textContent = error.message || "The secure notes service is unavailable. Please try again shortly.";
+    document.body.classList.remove("auth-pending");
   }
 
   function showForm() {
@@ -968,7 +2196,7 @@
       if (mode === "register" && $("#authPassword").value !== $("#authConfirmPassword").value) throw new Error("Passwords do not match.");
       const response = await request("/api/auth/" + mode, { method: "POST", body: JSON.stringify({ fullName: $("#authFullName").value, email: $("#authEmail").value, password: $("#authPassword").value }) });
       await hydrate(response.user);
-    } catch (requestError) { error.textContent = requestError.message; }
+    } catch (requestError) { showHydrationError(requestError); }
     finally { button.disabled = false; }
   });
   $("#accountBtn").addEventListener("click", async () => {
@@ -978,12 +2206,56 @@
       location.reload();
     } catch (error) { alert(error.message); }
   });
+  $("#billingMonthlyBtn").addEventListener("click",event=>startCheckout("monthly",event.currentTarget));
+  $("#billingYearlyBtn").addEventListener("click",event=>startCheckout("yearly",event.currentTarget));
+  $("#billingManageBtn").addEventListener("click",async event=>{const button=event.currentTarget;button.disabled=true;$("#billingPlanMessage").textContent="Opening secure billing portal…";try{const result=await request("/api/billing/portal",{method:"POST",body:"{}"});location.assign(result.url)}catch(error){$("#billingPlanMessage").textContent=error.message;button.disabled=false}});
 
-  request("/api/auth/me").then(({ user: account }) => account ? hydrate(account) : document.body.classList.remove("auth-pending")).catch(() => {
-    $("#authError").textContent = "The secure notes service is unavailable. Please try again shortly.";
-    document.body.classList.remove("auth-pending");
+  window.addEventListener("mkn:folder-action", async (event) => {
+    const { action, folderId, name } = event.detail || {};
+    try {
+      if (action === "create") await request("/api/folders", { method: "POST", body: JSON.stringify({ name }) });
+      else if (action === "rename") await request("/api/folders/" + encodeURIComponent(folderId), { method: "PATCH", body: JSON.stringify({ name }) });
+      else if (action === "delete") {
+        await request("/api/folders/" + encodeURIComponent(folderId), { method: "DELETE", body: "{}" });
+        const cached = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        cached.forEach((note) => { if (note.folderId === folderId) note.folderId = null; });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cached));
+        window.dispatchEvent(new CustomEvent("mkn:folder-deleted", { detail: folderId }));
+      } else return;
+      const { folders } = await request("/api/folders");
+      window.dispatchEvent(new CustomEvent("mkn:folders-updated", { detail: folders }));
+    } catch (error) {
+      window.dispatchEvent(new CustomEvent("mkn:folder-action-error", { detail: error.message }));
+    }
   });
+
+  request("/api/auth/me").then(({ user: account }) => {
+    if (account) return hydrate(account).catch(showHydrationError);
+    document.body.classList.remove("auth-pending");
+  }).catch(showHydrationError);
   showForm();
+})();
+</script>
+<script>
+(() => {
+  if (!document.documentElement.classList.contains("embedded-notes")) return;
+  let resizeScheduled = false;
+  const reportHeight = () => {
+    resizeScheduled = false;
+    const height = Math.ceil(document.querySelector(".app").getBoundingClientRect().height);
+    window.parent.postMessage({ type: "mkn:embedded-height", height }, location.origin);
+  };
+  const scheduleReport = () => {
+    if (resizeScheduled) return;
+    resizeScheduled = true;
+    requestAnimationFrame(reportHeight);
+  };
+  const observer = new ResizeObserver(scheduleReport);
+  observer.observe(document.documentElement);
+  observer.observe(document.querySelector(".app"));
+  window.addEventListener("load", scheduleReport);
+  window.addEventListener("resize", scheduleReport);
+  scheduleReport();
 })();
 </script>
 </body>

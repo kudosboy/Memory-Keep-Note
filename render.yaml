@@ -2,7 +2,7 @@ services:
   - type: web
     name: memory-keep-note-secure
     runtime: node
-    buildCommand: npm ci
+    buildCommand: npm ci --include=dev && npm run build && npm prune --omit=dev
     startCommand: npm start
     healthCheckPath: /api/auth/me
     envVars:
@@ -15,4 +15,8 @@ services:
       - key: MONGODB_URI
         sync: false
       - key: SMTP_URL
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
         sync: false
